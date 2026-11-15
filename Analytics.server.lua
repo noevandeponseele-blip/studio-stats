@@ -7,7 +7,7 @@
 
 	Avant de publier :
 	  1. Game Settings > Security > "Allow HTTP Requests" = ON
-	  2. Colle ton URL Firebase et ton secret ci-dessous
+	  2. Colle ton adresse Firebase (et ton secret si tu en as un) ci-dessous
 	     (le site les remplit pour toi dans l'onglet "Connecter mon jeu")
 
 	Événements perso (depuis n'importe quel autre Script serveur) :
@@ -21,7 +21,7 @@
 
 local CONFIG = {
 	FIREBASE_URL = "https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app",
-	SECRET = "COLLE_TON_SECRET_ICI",
+	SECRET = "COLLE_TON_SECRET_ICI",  -- laisse "" si tu utilises une clé (déjà dans l'adresse)
 	FLUSH_SECONDS = 15,        -- fréquence d'envoi
 	UNIVERSE_SECONDS = 300,    -- fréquence de relevé des visites / favoris / likes
 	STUDIO_SENDS_STATS = false, -- false : Studio envoie juste un test de connexion
@@ -38,6 +38,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local BASE = string.gsub(CONFIG.FIREBASE_URL, "/+$", "")
+local AUTH = (CONFIG.SECRET ~= "" and CONFIG.SECRET ~= "COLLE_TON_SECRET_ICI") and ("?auth=" .. CONFIG.SECRET) or ""
 local IS_STUDIO = RunService:IsStudio()
 local JOB = game.JobId ~= "" and game.JobId or ("studio-" .. HttpService:GenerateGUID(false))
 local JOB_KEY = string.sub(string.gsub(JOB, "[^%w]", ""), 1, 20)
@@ -62,7 +63,7 @@ local function safeKey(s)
 end
 
 local function request(method, path, body)
-	local url = BASE .. "/" .. path .. ".json?auth=" .. CONFIG.SECRET
+	local url = BASE .. "/" .. path .. ".json" .. AUTH
 	local ok, res = pcall(function()
 		return HttpService:RequestAsync({
 			Url = url,
@@ -433,7 +434,7 @@ local function cleanup()
 	local function shallowKeys(node)
 		local ok, res = pcall(function()
 			return HttpService:RequestAsync({
-				Url = BASE .. "/" .. node .. ".json?shallow=true&auth=" .. CONFIG.SECRET,
+				Url = BASE .. "/" .. node .. ".json?shallow=true" .. (string.gsub(AUTH, "^%?", "&")),
 				Method = "GET",
 			})
 		end)
