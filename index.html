@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Stats — analytique en direct de mon jeu Roblox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Même famille visuelle que le Labo des jeux Roblox : encre bleu nuit, bleu électrique pour l'action,
+   orange pour ce qui monte. Ici : un poste de pilotage, le direct en tête, chaque onglet = une question. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --ink:#131A2C; --muted:#586179; --line:#DCE1EB; --grid:#E8EBF2;
+  --accent:#2E4BF5; --accent-soft:#E4E9FF; --hot:#D9480F; --hot-soft:#FFEDE4;
+  --good:#1D7F55; --warn:#A86A12; --bad:#B93A26;
+  --seq1:#E4E9FF; --seq2:#B9C5FB; --seq3:#8197F7; --seq4:#4D68F3; --seq5:#2437C2;
+  --seqtxt:#FFFFFF;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1220; --surface:#161B2D; --ink:#E7EAF3; --muted:#9BA3BA; --line:#2A3149; --grid:#222840;
+  --accent:#7D92FF; --accent-soft:#232C55; --hot:#FF8A5B; --hot-soft:#3A2418;
+  --good:#4CC28E; --warn:#E0A642; --bad:#F07A63;
+  --seq1:#1F2647; --seq2:#2C3A7A; --seq3:#4559B8; --seq4:#6B80EE; --seq5:#A9B7FF; --seqtxt:#0E1220; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1220; --surface:#161B2D; --ink:#E7EAF3; --muted:#9BA3BA; --line:#2A3149; --grid:#222840;
+  --accent:#7D92FF; --accent-soft:#232C55; --hot:#FF8A5B; --hot-soft:#3A2418;
+  --good:#4CC28E; --warn:#E0A642; --bad:#F07A63;
+  --seq1:#1F2647; --seq2:#2C3A7A; --seq3:#4559B8; --seq4:#6B80EE; --seq5:#A9B7FF; --seqtxt:#0E1220; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.02em}
+h2{font-size:21px;font-weight:800;letter-spacing:-.01em}
+h3{font-size:16px;font-weight:600}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+header.top{padding:20px 0 14px;display:grid;gap:8px}
+.toprow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.logo{width:42px;height:42px;border-radius:10px;background:var(--ink);color:var(--bg);display:grid;place-items:center;flex:none}
+.brand small{display:block;font:12px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.statusrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:7px;font:600 12px var(--body);padding:5px 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.live{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+.pill.live .dot{background:var(--good);animation:pulse 1.6s infinite}
+.pill.demo{color:var(--hot);border-color:color-mix(in srgb,var(--hot) 40%,var(--line))}
+.pill.demo .dot{background:var(--hot)}
+.pill.off{color:var(--warn)}.pill.off .dot{background:var(--warn)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.stamp{font:12px var(--mono);color:var(--muted)}
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border:1px solid color-mix(in srgb,var(--hot) 35%,var(--line));background:var(--hot-soft);border-radius:12px;padding:10px 14px;font-size:14px}
+.banner b{color:var(--hot)}
+nav.tabs{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav.tabs .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:8px;scrollbar-width:none}
+nav.tabs a{flex:none;text-decoration:none;color:var(--muted);font-weight:600;padding:8px 12px;border-radius:8px;font-size:14px}
+nav.tabs a:hover{background:var(--surface);color:var(--ink)}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+nav.tabs a.cta{color:var(--accent)}
+nav.tabs a.cta[aria-current="page"]{color:var(--bg)}
+a:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main.wrap{padding-top:22px;padding-bottom:60px}
+section.view{display:none;gap:18px}
+section.view.on{display:grid}
+.vhead{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between}
+.vhead p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr}
+@media (min-width:800px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:900px){.g4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.span2{grid-column:1/-1}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;align-content:start;min-width:0}
+.card > p{margin:0}
+.card .ch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card .ch .sub{font-size:12px;color:var(--muted)}
+.tile{gap:6px}
+.tile .lab{color:var(--muted);font-size:13px;font-weight:500}
+.tile .num{font:600 28px/1.05 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tile .delta{font:600 12px var(--mono)}
+.up{color:var(--good)}.down{color:var(--bad)}.flat{color:var(--muted)}
+.hero{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:14px}
+.hero .big{display:grid;align-content:center;gap:4px}
+.hero .bignum{font:600 clamp(56px,9vw,88px)/.95 var(--mono);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.hero .biglab{color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.hero .bigsub{font-size:13px;color:var(--muted)}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+.src{font-size:12px;color:var(--muted);margin:0}
+.chip{display:inline-flex;align-items:center;gap:4px;font:600 12px var(--body);padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.chip.hot{background:var(--hot-soft);color:var(--hot)}
+.chip.good{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.tablebox{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-height:460px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--bg);position:sticky;top:0;z-index:1;white-space:nowrap}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.empty{color:var(--muted);font-size:14px;padding:18px 4px;text-align:center}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:minmax(90px,160px) 1fr 84px;gap:10px;align-items:center;font-size:13px;border-radius:6px;padding:2px 4px}
+.bar:hover{background:var(--bg)}
+.bar .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .fill{height:12px;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px;display:block}
+.bar .val{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .ax{font:11px var(--mono);fill:var(--muted)}
+.chart .gl{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--line);stroke-width:1}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .ln2{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4}
+.chart .ar{fill:var(--accent);opacity:.12}
+.chart .bx{fill:var(--accent)}
+.chart .bx.cur{fill:var(--hot)}
+.chart .hl{fill:var(--ink);opacity:.06}
+.chart .xh{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.chart .pt{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.chart .lbl{font:600 11px var(--mono);fill:var(--ink)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:2px;background:var(--accent)}
+.legend i.dash{background:none;border-top:2px dashed var(--muted)}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:7px 10px;border-radius:7px;max-width:280px;opacity:0;transition:opacity .1s;z-index:30;line-height:1.4}
+#tip b{font-family:var(--mono)}
+.heat{display:grid;grid-template-columns:34px repeat(24,1fr);gap:2px;font:10px var(--mono);color:var(--muted)}
+.heat .c{aspect-ratio:1.4;border-radius:3px;background:var(--seq1)}
+.heat .c:hover{outline:2px solid var(--ink)}
+.heat .rl{display:flex;align-items:center}
+.heat .hl{text-align:center}
+.scale{display:flex;gap:2px;align-items:center;font-size:11px;color:var(--muted)}
+.scale i{width:22px;height:10px;border-radius:2px;display:inline-block}
+.cohort td.cell{text-align:center;font:600 12px var(--mono);min-width:56px;border:2px solid var(--surface)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.controls label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;border-radius:0;padding:7px 12px;font-size:13px;background:transparent}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+select,input[type=text],input[type=password],input[type=url],textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:100%}
+input[type=text],input[type=password],input[type=url]{width:100%}
+textarea{width:100%;min-height:220px;font:12px/1.5 var(--mono);resize:vertical;tab-size:2;white-space:pre;overflow:auto}
+button{font:600 14px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.primary:hover{filter:brightness(1.08)}
+button.small{padding:5px 10px;font-size:13px}
+.feed{display:grid;gap:0;max-height:430px;overflow:auto}
+.feed .it{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:start;padding:8px 2px;border-bottom:1px solid var(--line);font-size:13px}
+.feed .it:last-child{border-bottom:0}
+.feed .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;background:var(--bg)}
+.feed .tm{font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.feed .it.new-in{animation:flash 1.2s}
+@keyframes flash{from{background:var(--accent-soft)}to{background:transparent}}
+.dev{font:600 11px var(--mono);color:var(--muted);text-transform:uppercase}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden;min-width:60px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.steps{display:grid;gap:14px;counter-reset:st}
+.step{display:grid;grid-template-columns:36px 1fr;gap:12px}
+.step::before{counter-increment:st;content:counter(st);width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font:600 14px var(--mono)}
+.step.done::before{content:"✓";background:var(--good)}
+.step .body{display:grid;gap:8px;min-width:0}
+.step p,.step ol{margin:0}
+.step ol{padding-left:18px;display:grid;gap:4px}
+code{font:13px var(--mono);background:var(--bg);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+.check{display:flex;gap:8px;align-items:center;font-size:14px}
+.check .s{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--line);color:var(--muted);flex:none}
+.check.ok .s{background:var(--good);color:#fff}
+.check.ko .s{background:var(--bad);color:#fff}
+.note{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted);background:var(--surface)}
+.funnel{display:grid;gap:8px}
+.fstep{display:grid;grid-template-columns:minmax(120px,200px) 1fr 120px;gap:10px;align-items:center;font-size:13px}
+.fstep .track{height:26px;background:var(--bg);border-radius:6px;overflow:hidden}
+.fstep .track i{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0}
+footer{border-top:1px solid var(--line);padding:18px 0 40px;font-size:12px;color:var(--muted)}
+@media (max-width:640px){.bar{grid-template-columns:90px 1fr 70px}.fstep{grid-template-columns:100px 1fr 90px}.tile .num{font-size:24px}.hide-sm{display:none}}
+@media (max-width:1180px){.hide-md{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="tip" role="tooltip"></div>
+
+<header class="wrap top">
+  <div class="toprow">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+      <div style="min-width:0"><small>Studio Stats · analytique en direct</small><h1 id="gameName">Mon jeu</h1></div>
+    </div>
+    <div class="statusrow">
+      <span class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Chargement…</span></span>
+      <span class="stamp" id="stamp"></span>
+      <button class="small" id="refreshBtn">Actualiser</button>
+    </div>
+  </div>
+  <div class="banner" id="demoBanner" hidden>
+    <span><b>Mode démo</b> — ces chiffres sont inventés pour te montrer le tableau de bord. Connecte ton jeu pour voir tes vraies données.</span>
+    <button class="small primary" data-go="connecter">Connecter mon jeu</button>
+  </div>
+  <div class="banner" id="errBanner" hidden><span id="errText"></span><button class="small" data-go="connecter">Vérifier la connexion</button></div>
+</header>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="wrap" id="tabs">
+    <a href="#direct">En direct</a>
+    <a href="#audience">Audience</a>
+    <a href="#engagement">Engagement</a>
+    <a href="#retention">Rétention</a>
+    <a href="#monetisation">Monétisation</a>
+    <a href="#joueurs">Joueurs</a>
+    <a href="#evenements">Événements</a>
+    <a href="#jeu">Page du jeu</a>
+    <a href="#connecter" class="cta">Connecter mon jeu</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- EN DIRECT -->
+<section class="view" id="v-direct">
+  <div class="hero">
+    <div class="card big">
+      <div class="biglab"><span class="pill live" id="heroPill" style="padding:3px 8px"><span class="dot"></span>Live</span> Joueurs connectés</div>
+      <div class="bignum" id="ccuNow">–</div>
+      <div class="bigsub" id="ccuSub">–</div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Joueurs connectés — dernières 24 h</h3><span class="sub">1 point par minute · heure locale</span></div>
+      <div class="chart" id="chMinute"></div>
+      <div class="legend"><span><i></i>Aujourd'hui</span><span><i class="dash"></i>Même heure hier</span></div>
+    </div>
+  </div>
+  <div class="grid g4" id="liveKpis"></div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="ch"><h3>Serveurs actifs</h3><span class="sub" id="srvCount"></span></div>
+      <div class="tablebox"><table><thead><tr><th>Serveur</th><th class="n">Joueurs</th><th class="n">FPS</th><th class="n">Ping</th><th class="n hide-md">Mémoire</th><th class="n hide-md">Version</th><th class="n">Depuis</th></tr></thead><tbody id="srvBody"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Ce qui se passe maintenant</h3><span class="sub">arrivées, départs, achats, événements</span></div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Qui joue en ce moment</h3><input type="text" id="plSearch" placeholder="Chercher un joueur…" style="max-width:220px"></div>
+    <div class="tablebox"><table><thead><tr><th>Joueur</th><th>Appareil</th><th>Pays</th><th class="n">Temps de jeu</th><th class="n">Ping</th><th class="hide-sm">Profil</th></tr></thead><tbody id="plBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- AUDIENCE -->
+<section class="view" id="v-audience">
+  <div class="vhead"><div><h2>Audience</h2><p>Combien de joueurs viennent, combien sont nouveaux, et à quelles heures ton jeu est plein.</p></div><div class="seg period" role="group" aria-label="Période"></div></div>
+  <div class="grid g4" id="audKpis"></div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><h3>Joueurs uniques par jour</h3><span class="sub">jours en UTC</span></div><div class="chart" id="chDau"></div></div>
+    <div class="card"><div class="ch"><h3>Nouveaux joueurs par jour</h3><span class="sub">première partie de leur vie</span></div><div class="chart" id="chNew"></div></div>
+    <div class="card"><div class="ch"><h3>Pic de joueurs connectés par jour</h3><span class="sub">maximum atteint dans la journée</span></div><div class="chart" id="chPeak"></div></div>
+    <div class="card"><div class="ch"><h3>Moyenne de joueurs connectés par heure</h3><span class="sub">7 derniers jours · heure locale</span></div><div class="chart" id="chHourly"></div></div>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Quand ton jeu est le plus rempli</h3><span class="sub">moyenne des joueurs connectés, 4 dernières semaines · heure locale</span></div>
+    <div id="heat"></div>
+    <p class="src" id="heatTip"></p>
+  </div>
+</section>
+
+<!-- ENGAGEMENT -->
+<section class="view" id="v-engagement">
+  <div class="vhead"><div><h2>Engagement</h2><p>Combien de temps les joueurs restent, et s'ils reviennent plusieurs fois par jour.</p></div><div class="seg period" role="group" aria-label="Période"></div></div>
+  <div class="grid g4" id="engKpis"></div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><h3>Durée moyenne d'une session</h3><span class="sub">minutes</span></div><div class="chart" id="chSess"></div></div>
+    <div class="card"><div class="ch"><h3>Temps de jeu par joueur et par jour</h3><span class="sub">minutes</span></div><div class="chart" id="chPtu"></div></div>
+    <div class="card"><div class="ch"><h3>Durée des sessions</h3><span class="sub">part des sessions sur la période</span></div><div class="bars" id="sessDist"></div></div>
+    <div class="card"><div class="ch"><h3>Temps de jeu total par jour</h3><span class="sub">heures</span></div><div class="chart" id="chPt"></div></div>
+  </div>
+</section>
+
+<!-- RETENTION -->
+<section class="view" id="v-retention">
+  <div class="vhead"><div><h2>Rétention</h2><p>Sur 100 nouveaux joueurs d'un jour, combien reviennent 1, 3, 7, 14 et 30 jours après. C'est le chiffre que Roblox regarde le plus pour recommander un jeu.</p></div></div>
+  <div class="grid g4" id="retKpis"></div>
+  <div class="card"><div class="ch"><h3>Rétention J1 et J7 par jour d'arrivée</h3><span class="sub">%</span></div><div class="chart" id="chRet"></div><div class="legend"><span><i></i>J1</span><span><i class="dash"></i>J7</span></div></div>
+  <div class="card">
+    <div class="ch"><h3>Cohortes</h3><span class="sub">plus la case est foncée, plus ils reviennent</span></div>
+    <div class="tablebox"><table class="cohort"><thead><tr><th>Arrivés le</th><th class="n">Nouveaux</th><th>J1</th><th>J3</th><th>J7</th><th>J14</th><th>J30</th></tr></thead><tbody id="cohBody"></tbody></table></div>
+    <p class="src">Une case vide = le jour n'est pas encore arrivé. « J1 » compte les joueurs revenus exactement le lendemain de leur première partie.</p>
+  </div>
+</section>
+
+<!-- MONETISATION -->
+<section class="view" id="v-monetisation">
+  <div class="vhead"><div><h2>Monétisation</h2><p>Les Robux dépensés dans ton jeu (game passes et produits développeur), et qui paie.</p></div><div class="seg period" role="group" aria-label="Période"></div></div>
+  <div class="grid g4" id="monKpis"></div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><h3>Robux dépensés par jour</h3><span class="sub">prix payé par les joueurs</span></div><div class="chart" id="chRobux"></div></div>
+    <div class="card"><div class="ch"><h3>Robux par joueur unique (ARPDAU)</h3><span class="sub">Robux / joueur / jour</span></div><div class="chart" id="chArpu"></div></div>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Ce qui se vend</h3><span class="sub" id="prodSub"></span></div>
+    <div class="tablebox"><table><thead><tr><th>Article</th><th>Type</th><th class="n">Ventes</th><th class="n">Robux</th><th class="n">Part</th></tr></thead><tbody id="prodBody"></tbody></table></div>
+    <p class="src">Roblox garde environ 30 % sur chaque vente : ce que tu touches vraiment ≈ 70 % des Robux affichés.</p>
+  </div>
+</section>
+
+<!-- JOUEURS -->
+<section class="view" id="v-joueurs">
+  <div class="vhead"><div><h2>Joueurs</h2><p>Sur quoi ils jouent et d'où ils viennent — utile pour savoir pour quel écran optimiser et dans quelles langues traduire.</p></div><div class="seg period" role="group" aria-label="Période"></div></div>
+  <div class="grid g4" id="plKpis"></div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><h3>Appareils</h3><span class="sub">part des joueurs</span></div><div class="bars" id="devBars"></div></div>
+    <div class="card"><div class="ch"><h3>Pays</h3><span class="sub">top 12, part des arrivées</span></div><div class="bars" id="ccBars"></div></div>
+  </div>
+</section>
+
+<!-- EVENEMENTS -->
+<section class="view" id="v-evenements">
+  <div class="vhead"><div><h2>Événements perso</h2><p>Tout ce que tu envoies toi-même depuis ton jeu avec <code>TrackAnalytics:Fire("nom", valeur)</code> : niveaux finis, pièces gagnées, morts, étapes du tuto…</p></div><div class="seg period" role="group" aria-label="Période"></div></div>
+  <div class="card">
+    <div class="ch"><h3>Tous les événements</h3><span class="sub">clique sur une ligne pour voir sa courbe</span></div>
+    <div class="tablebox"><table><thead><tr><th>Événement</th><th class="n">Nombre</th><th class="n">Par joueur</th><th class="n">Somme des valeurs</th><th class="n">Valeur moyenne</th></tr></thead><tbody id="evBody"></tbody></table></div>
+  </div>
+  <div class="card"><div class="ch"><h3 id="evTitle">Par jour</h3><span class="sub">nombre d'événements</span></div><div class="chart" id="chEv"></div></div>
+  <div class="card">
+    <div class="ch"><h3>Entonnoir</h3><span class="sub">choisis tes étapes dans l'ordre</span></div>
+    <div class="controls" id="funnelCtl"></div>
+    <div class="funnel" id="funnel"></div>
+    <p class="src">Compare le nombre de fois où chaque étape est atteinte sur la période. Idéal pour voir où les joueurs abandonnent ton tuto ou ton obby.</p>
+  </div>
+</section>
+
+<!-- PAGE DU JEU -->
+<section class="view" id="v-jeu">
+  <div class="vhead"><div><h2>Page du jeu</h2><p>Les compteurs publics de ta page Roblox, relevés par ton jeu toutes les 5 minutes.</p></div><div class="seg period" role="group" aria-label="Période"></div></div>
+  <div class="grid g4" id="uniKpis"></div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><h3>Visites gagnées par jour</h3></div><div class="chart" id="chVisits"></div></div>
+    <div class="card"><div class="ch"><h3>Favoris gagnés par jour</h3></div><div class="chart" id="chFav"></div></div>
+    <div class="card span2"><div class="ch"><h3>Taux de likes</h3><span class="sub">% de 👍 parmi tous les votes</span></div><div class="chart" id="chLike"></div></div>
+  </div>
+</section>
+
+<!-- CONNECTER -->
+<section class="view" id="v-connecter">
+  <div class="vhead"><div><h2>Connecter mon jeu</h2><p>Ton jeu envoie ses chiffres toutes les 15 secondes dans une base gratuite à toi (Firebase, de Google). Ce site les lit en direct. Compte 10 minutes la première fois.</p></div></div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="steps">
+        <div class="step" id="st1"><div class="body">
+          <h3>Crée ta base Firebase (gratuit)</h3>
+          <ol>
+            <li>Va sur <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> et connecte-toi avec ton compte Google.</li>
+            <li><b>Créer un projet</b> → donne-lui un nom (ex. <code>stats-mon-jeu</code>) → tu peux désactiver Google Analytics.</li>
+            <li>Menu de gauche : <b>Créer → Realtime Database</b> → <b>Créer une base de données</b> → choisis <b>Belgique (europe-west1)</b> → <b>Démarrer en mode verrouillé</b>.</li>
+            <li>Copie l'adresse affichée en haut (elle finit par <code>firebasedatabase.app</code> ou <code>firebaseio.com</code>).</li>
+          </ol>
+        </div></div>
+        <div class="step" id="st2"><div class="body">
+          <h3>Récupère ton secret</h3>
+          <ol>
+            <li>Roue dentée ⚙️ → <b>Paramètres du projet</b> → onglet <b>Comptes de service</b>.</li>
+            <li><b>Codes secrets de la base de données</b> → <b>Afficher</b> → copie le code.</li>
+          </ol>
+          <p class="src">Ce code permet d'écrire dans ta base : ne le donne à personne. Il reste dans ton navigateur et dans le script serveur (que les joueurs ne voient jamais).</p>
+        </div></div>
+        <div class="step" id="st3"><div class="body">
+          <h3>Colle-les ici</h3>
+          <label class="controls" style="display:grid;gap:4px"><span style="font-size:12px;color:var(--muted);font-weight:600">Adresse de la base</span><input type="url" id="cfgUrl" placeholder="https://stats-mon-jeu-default-rtdb.europe-west1.firebasedatabase.app" autocomplete="off" spellcheck="false"></label>
+          <label class="controls" style="display:grid;gap:4px"><span style="font-size:12px;color:var(--muted);font-weight:600">Secret</span><input type="password" id="cfgSecret" placeholder="ex. a1B2c3D4…" autocomplete="off" spellcheck="false"></label>
+          <div class="controls"><button class="primary" id="saveCfg">Enregistrer et tester</button><button id="demoBtn">Revenir au mode démo</button></div>
+          <div id="testOut" style="display:grid;gap:6px"></div>
+        </div></div>
+        <div class="step" id="st4"><div class="body">
+          <h3>Ajoute les 2 scripts dans Roblox Studio</h3>
+          <ol>
+            <li><b>Home → Game Settings → Security</b> → active <b>Allow HTTP Requests</b> (et <b>Enable Studio Access to API Services</b>).</li>
+            <li>Dans <b>ServerScriptService</b> : ajoute un <b>Script</b> nommé <code>LiveAnalytics</code> et colle le script serveur.</li>
+            <li>Dans <b>StarterPlayer → StarterPlayerScripts</b> : ajoute un <b>LocalScript</b> nommé <code>AnalyticsDevice</code> et colle le script client.</li>
+            <li>Lance le jeu dans Studio : la sortie doit afficher <code>✅ Connexion à Firebase OK</code> et la ligne « Test depuis Studio » à droite passe au vert.</li>
+            <li><b>Publie</b> ton jeu. Dès qu'un joueur rejoint, l'onglet <b>En direct</b> s'allume.</li>
+          </ol>
+        </div></div>
+      </div>
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="card">
+        <div class="ch"><h3>État de la connexion</h3><button class="small" id="recheck">Revérifier</button></div>
+        <div id="checks" style="display:grid;gap:8px"></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Script serveur</h3><button class="small primary" data-copy="codeServer">Copier</button></div>
+        <textarea id="codeServer" readonly spellcheck="false"></textarea>
+        <p class="src" id="codeHint">Ton adresse et ton secret sont déjà remplis dedans dès que tu les enregistres.</p>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Script client (appareil)</h3><button class="small primary" data-copy="codeClient">Copier</button></div>
+        <textarea id="codeClient" readonly spellcheck="false" style="min-height:140px"></textarea>
+      </div>
+      <div class="card">
+        <h3>Suivre tes propres événements</h3>
+        <p style="font-size:14px">Depuis n'importe quel Script serveur de ton jeu :</p>
+        <textarea readonly spellcheck="false" style="min-height:120px">local Track = game:GetService("ServerStorage"):WaitForChild("TrackAnalytics")
+
+Track:Fire("etape_10", 1, player)        -- un joueur atteint l'étape 10
+Track:Fire("pieces_gagnees", 250, player) -- valeur = nombre de pièces
+Track:Fire("boss_vaincu")                -- sans valeur ni joueur</textarea>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="wrap">
+  <p>Données envoyées par ton jeu vers ta base Firebase · jours et cohortes en UTC, graphiques horaires en heure locale · Visites, favoris et likes : API publique Roblox via roproxy.com.</p>
+</footer>
+<script>
+"use strict";
+/* ============================================================
+   Studio Stats — tableau de bord en direct pour un jeu Roblox
+   Lit la base Firebase Realtime Database remplie par le script
+   serveur LiveAnalytics. Sans base configurée : mode démo.
+   ============================================================ */
+const LUA_SERVER = "--[[\n\tROBLOX LIVE ANALYTICS \u2014 script serveur\n\t\u00c0 placer dans : ServerScriptService  (type : Script)\n\n\tCe script envoie les statistiques de ton jeu vers ta base Firebase\n\ttoutes les 15 secondes. Ton tableau de bord les lit en temps r\u00e9el.\n\n\tAvant de publier :\n\t  1. Game Settings > Security > \"Allow HTTP Requests\" = ON\n\t  2. Colle ton URL Firebase et ton secret ci-dessous\n\t     (le site les remplit pour toi dans l'onglet \"Connecter mon jeu\")\n\n\t\u00c9v\u00e9nements perso (depuis n'importe quel autre Script serveur) :\n\t  local Track = game:GetService(\"ServerStorage\"):WaitForChild(\"TrackAnalytics\")\n\t  Track:Fire(\"niveau_termine\", 1)            -- nom, valeur (optionnel)\n\t  Track:Fire(\"pieces_gagnees\", 250, player)  -- le joueur est optionnel aussi\n\n\tCe script ne s'ex\u00e9cute que sur le serveur : ton secret n'est jamais\n\tenvoy\u00e9 aux joueurs.\n]]\n\nlocal CONFIG = {\n\tFIREBASE_URL = \"https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app\",\n\tSECRET = \"COLLE_TON_SECRET_ICI\",\n\tFLUSH_SECONDS = 15,        -- fr\u00e9quence d'envoi\n\tUNIVERSE_SECONDS = 300,    -- fr\u00e9quence de relev\u00e9 des visites / favoris / likes\n\tSTUDIO_SENDS_STATS = false, -- false : Studio envoie juste un test de connexion\n}\n\nlocal HttpService = game:GetService(\"HttpService\")\nlocal Players = game:GetService(\"Players\")\nlocal RunService = game:GetService(\"RunService\")\nlocal Stats = game:GetService(\"Stats\")\nlocal DataStoreService = game:GetService(\"DataStoreService\")\nlocal MarketplaceService = game:GetService(\"MarketplaceService\")\nlocal LocalizationService = game:GetService(\"LocalizationService\")\nlocal ReplicatedStorage = game:GetService(\"ReplicatedStorage\")\nlocal ServerStorage = game:GetService(\"ServerStorage\")\n\nlocal BASE = string.gsub(CONFIG.FIREBASE_URL, \"/+$\", \"\")\nlocal IS_STUDIO = RunService:IsStudio()\nlocal JOB = game.JobId ~= \"\" and game.JobId or (\"studio-\" .. HttpService:GenerateGUID(false))\nlocal JOB_KEY = string.sub(string.gsub(JOB, \"[^%w]\", \"\"), 1, 20)\nlocal SERVER_START = os.time()\nlocal IS_PRIVATE = game.PrivateServerId ~= \"\"\nlocal NULL = \"__NULL__\" -- remplac\u00e9 par null dans le JSON (= suppression)\n\n------------------------------------------------------------------------\n-- Petites fonctions utiles\n------------------------------------------------------------------------\nlocal function dayKey(t) return os.date(\"!%Y%m%d\", t or os.time()) end\nlocal function hourKey(t) return os.date(\"!%Y%m%d%H\", t or os.time()) end\nlocal function minuteKey(t) return os.date(\"!%Y%m%d%H%M\", t or os.time()) end\nlocal function dayNumber(t) return math.floor((t or os.time()) / 86400) end\n\nlocal function safeKey(s)\n\ts = tostring(s or \"\")\n\ts = string.gsub(s, \"[%.%$#%[%]/]\", \"_\")\n\ts = string.sub(s, 1, 60)\n\tif s == \"\" then s = \"_\" end\n\treturn s\nend\n\nlocal function request(method, path, body)\n\tlocal url = BASE .. \"/\" .. path .. \".json?auth=\" .. CONFIG.SECRET\n\tlocal ok, res = pcall(function()\n\t\treturn HttpService:RequestAsync({\n\t\t\tUrl = url,\n\t\t\tMethod = method,\n\t\t\tHeaders = { [\"Content-Type\"] = \"application/json\" },\n\t\t\tBody = body and (string.gsub(HttpService:JSONEncode(body), '\"__NULL__\"', \"null\")) or nil,\n\t\t})\n\tend)\n\tif not ok then\n\t\twarn(\"[Analytics] Requ\u00eate impossible : \" .. tostring(res))\n\t\treturn false, nil\n\tend\n\tif not res.Success then\n\t\twarn(\"[Analytics] Firebase a r\u00e9pondu \" .. tostring(res.StatusCode) .. \" : \" .. tostring(res.Body))\n\t\treturn false, nil\n\tend\n\treturn true, res.Body\nend\n\n------------------------------------------------------------------------\n-- Studio : simple test de connexion\n------------------------------------------------------------------------\nif IS_STUDIO and not CONFIG.STUDIO_SENDS_STATS then\n\ttask.spawn(function()\n\t\tlocal ok = request(\"PUT\", \"ping\", {\n\t\t\tt = { [\".sv\"] = \"timestamp\" },\n\t\t\tfrom = \"studio\",\n\t\t\tplace = game.PlaceId,\n\t\t\tuniverse = game.GameId,\n\t\t})\n\t\tif ok then\n\t\t\tprint(\"[Analytics] \u2705 Connexion \u00e0 Firebase OK ! Regarde l'onglet \u00ab Connecter mon jeu \u00bb du site.\")\n\t\telse\n\t\t\twarn(\"[Analytics] \u274c Connexion impossible. V\u00e9rifie l'URL, le secret et \u00ab Allow HTTP Requests \u00bb.\")\n\t\tend\n\tend)\n\treturn\nend\n\n------------------------------------------------------------------------\n-- File d'attente : tout est regroup\u00e9 et envoy\u00e9 en une seule requ\u00eate\n------------------------------------------------------------------------\nlocal pendingInc = {}   -- chemin -> nombre \u00e0 ajouter\nlocal pendingSet = {}   -- chemin -> valeur\nlocal feedCounter = 0\n\nlocal function inc(path, n)\n\tpendingInc[path] = (pendingInc[path] or 0) + (n or 1)\nend\n\nlocal function feed(kind, player, extra)\n\tfeedCounter = feedCounter + 1\n\tlocal ms = math.floor(DateTime.now().UnixTimestampMillis)\n\tlocal key = string.format(\"%013d_%s_%04d\", ms, string.sub(JOB_KEY, 1, 6), feedCounter % 10000)\n\tpendingSet[\"f/\" .. key] = {\n\t\tk = kind,\n\t\tn = player and player.Name or nil,\n\t\td = player and player.DisplayName or nil,\n\t\tu = player and player.UserId or nil,\n\t\tx = extra,\n\t\tt = ms,\n\t}\nend\n\n------------------------------------------------------------------------\n-- Suivi des joueurs\n------------------------------------------------------------------------\nlocal playerStore = DataStoreService:GetDataStore(\"LiveAnalytics_Players_v1\")\nlocal RETENTION_DAYS = { 1, 3, 7, 14, 30 }\nlocal sessions = {}     -- [userId] = { join, device, country, premium, new }\nlocal paidToday = {}    -- [userId] = dayKey\n\nlocal function sessionBucket(sec)\n\tlocal m = sec / 60\n\tif m < 1 then return \"a_lt1\" end\n\tif m < 5 then return \"b_1_5\" end\n\tif m < 15 then return \"c_5_15\" end\n\tif m < 30 then return \"d_15_30\" end\n\tif m < 60 then return \"e_30_60\" end\n\treturn \"f_60p\"\nend\n\nlocal function onPlayerAdded(player)\n\tlocal now = os.time()\n\tlocal today = dayKey(now)\n\tlocal s = { join = now, device = \"?\", country = \"??\", premium = false, new = false }\n\tsessions[player.UserId] = s\n\n\tinc(\"d/\" .. today .. \"/j\")\n\n\t-- Premium\n\tif player.MembershipType == Enum.MembershipType.Premium then\n\t\ts.premium = true\n\t\tinc(\"d/\" .. today .. \"/pg\")\n\tend\n\n\t-- Pays\n\tlocal okC, cc = pcall(function()\n\t\treturn LocalizationService:GetCountryRegionForPlayerAsync(player)\n\tend)\n\tif okC and cc then\n\t\ts.country = cc\n\t\tinc(\"d/\" .. today .. \"/cc/\" .. safeKey(cc))\n\tend\n\n\t-- Nouveau joueur / joueur unique du jour / r\u00e9tention\n\tlocal today_n = dayNumber(now)\n\tlocal okU, err = pcall(function()\n\t\tplayerStore:UpdateAsync(tostring(player.UserId), function(data)\n\t\t\tif type(data) ~= \"table\" or not data.first then\n\t\t\t\ts.new = true\n\t\t\t\tinc(\"d/\" .. today .. \"/nu\")\n\t\t\t\tinc(\"d/\" .. today .. \"/u\")\n\t\t\t\tinc(\"c/\" .. today .. \"/n\")\n\t\t\t\treturn { first = today_n, last = today_n, ret = {} }\n\t\t\tend\n\t\t\tif data.last ~= today_n then\n\t\t\t\tinc(\"d/\" .. today .. \"/u\")\n\t\t\tend\n\t\t\tlocal diff = today_n - data.first\n\t\t\tdata.ret = data.ret or {}\n\t\t\tfor _, d in ipairs(RETENTION_DAYS) do\n\t\t\t\tif diff == d and not data.ret[tostring(d)] then\n\t\t\t\t\tdata.ret[tostring(d)] = true\n\t\t\t\t\tinc(\"c/\" .. dayKey(data.first * 86400) .. \"/d\" .. d)\n\t\t\t\tend\n\t\t\tend\n\t\t\tdata.last = today_n\n\t\t\treturn data\n\t\tend)\n\tend)\n\tif not okU then warn(\"[Analytics] DataStore : \" .. tostring(err)) end\n\n\tfeed(\"join\", player, { new = s.new, cc = s.country })\nend\n\nlocal function onPlayerRemoving(player)\n\tlocal s = sessions[player.UserId]\n\tif not s then return end\n\tsessions[player.UserId] = nil\n\tlocal now = os.time()\n\tlocal today = dayKey(now)\n\tlocal dur = math.max(0, now - s.join)\n\tinc(\"d/\" .. today .. \"/ss\")\n\tinc(\"d/\" .. today .. \"/pt\", dur)\n\tinc(\"d/\" .. today .. \"/sb/\" .. sessionBucket(dur))\n\tfeed(\"leave\", player, { dur = dur })\nend\n\nPlayers.PlayerAdded:Connect(onPlayerAdded)\nPlayers.PlayerRemoving:Connect(onPlayerRemoving)\nfor _, p in ipairs(Players:GetPlayers()) do task.spawn(onPlayerAdded, p) end\n\n------------------------------------------------------------------------\n-- Appareil (envoy\u00e9 une fois par le LocalScript)\n------------------------------------------------------------------------\nlocal deviceRemote = ReplicatedStorage:FindFirstChild(\"AnalyticsDevice\")\nif not deviceRemote then\n\tdeviceRemote = Instance.new(\"RemoteEvent\")\n\tdeviceRemote.Name = \"AnalyticsDevice\"\n\tdeviceRemote.Parent = ReplicatedStorage\nend\nlocal VALID_DEVICES = { pc = true, mobile = true, tablet = true, console = true, vr = true }\ndeviceRemote.OnServerEvent:Connect(function(player, device)\n\tlocal s = sessions[player.UserId]\n\tif not s or s.device ~= \"?\" then return end\n\tif type(device) ~= \"string\" or not VALID_DEVICES[device] then return end\n\ts.device = device\n\tinc(\"d/\" .. dayKey() .. \"/dev/\" .. device)\nend)\n\n------------------------------------------------------------------------\n-- Achats (Robux)\n------------------------------------------------------------------------\nlocal productInfoCache = {}\nlocal function getInfo(id, infoType)\n\tlocal key = tostring(infoType) .. tostring(id)\n\tif productInfoCache[key] then return productInfoCache[key] end\n\tlocal ok, info = pcall(function()\n\t\treturn MarketplaceService:GetProductInfo(id, infoType)\n\tend)\n\tif ok and info then\n\t\tproductInfoCache[key] = info\n\t\treturn info\n\tend\n\treturn nil\nend\n\nlocal function recordPurchase(player, kind, id, infoType)\n\tlocal info = getInfo(id, infoType)\n\tlocal price = (info and info.PriceInRobux) or 0\n\tlocal name = (info and info.Name) or tostring(id)\n\tlocal today = dayKey()\n\tlocal pkey = kind .. \"_\" .. tostring(id)\n\tinc(\"d/\" .. today .. \"/rb\", price)\n\tinc(\"d/\" .. today .. \"/pu\")\n\tinc(\"d/\" .. today .. \"/pr/\" .. pkey .. \"/r\", price)\n\tinc(\"d/\" .. today .. \"/pr/\" .. pkey .. \"/c\")\n\tpendingSet[\"names/\" .. pkey] = name\n\tif player and paidToday[player.UserId] ~= today then\n\t\tpaidToday[player.UserId] = today\n\t\tinc(\"d/\" .. today .. \"/py\")\n\tend\n\tfeed(\"buy\", player, { item = name, r = price, kind = kind })\nend\n\nMarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)\n\tif purchased then recordPurchase(player, \"pass\", passId, Enum.InfoType.GamePass) end\nend)\n\nMarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, productId, purchased)\n\tif purchased then\n\t\trecordPurchase(Players:GetPlayerByUserId(userId), \"prod\", productId, Enum.InfoType.Product)\n\tend\nend)\n\n------------------------------------------------------------------------\n-- \u00c9v\u00e9nements perso\n------------------------------------------------------------------------\nlocal trackEvent = ServerStorage:FindFirstChild(\"TrackAnalytics\")\nif not trackEvent then\n\ttrackEvent = Instance.new(\"BindableEvent\")\n\ttrackEvent.Name = \"TrackAnalytics\"\n\ttrackEvent.Parent = ServerStorage\nend\ntrackEvent.Event:Connect(function(name, value, player)\n\tif type(name) ~= \"string\" or name == \"\" then return end\n\tlocal key = safeKey(name)\n\tlocal v = tonumber(value) or 1\n\tlocal today = dayKey()\n\tinc(\"d/\" .. today .. \"/ev/\" .. key .. \"/c\")\n\tinc(\"d/\" .. today .. \"/ev/\" .. key .. \"/v\", v)\n\tif typeof(player) == \"Instance\" and player:IsA(\"Player\") then\n\t\tfeed(\"event\", player, { e = name, v = v })\n\tend\nend)\n\n------------------------------------------------------------------------\n-- Sant\u00e9 du serveur\n------------------------------------------------------------------------\nlocal fpsSamples, fpsSum = 0, 0\nRunService.Heartbeat:Connect(function(dt)\n\tif dt > 0 then\n\t\tfpsSum = fpsSum + (1 / dt)\n\t\tfpsSamples = fpsSamples + 1\n\tend\nend)\n\nlocal currentHour, hourPeak, hourSum, hourN = nil, 0, 0, 0\n\nlocal function buildLive()\n\tlocal fps = fpsSamples > 0 and math.floor(fpsSum / fpsSamples + 0.5) or 60\n\tfpsSum, fpsSamples = 0, 0\n\n\tlocal pl, pingSum, pingN = {}, 0, 0\n\tlocal now = os.time()\n\tfor _, p in ipairs(Players:GetPlayers()) do\n\t\tlocal s = sessions[p.UserId]\n\t\tlocal okP, ping = pcall(function() return p:GetNetworkPing() end)\n\t\tlocal pingMs = okP and math.floor(ping * 1000 + 0.5) or nil\n\t\tif pingMs then pingSum = pingSum + pingMs; pingN = pingN + 1 end\n\t\tpl[tostring(p.UserId)] = {\n\t\t\tn = p.Name,\n\t\t\td = p.DisplayName,\n\t\t\tdev = s and s.device or \"?\",\n\t\t\tcc = s and s.country or \"??\",\n\t\t\tpr = s and s.premium or false,\n\t\t\tnw = s and s.new or false,\n\t\t\tj = s and s.join or now,\n\t\t\tpi = pingMs,\n\t\t}\n\tend\n\n\treturn {\n\t\tp = #Players:GetPlayers(),\n\t\tmax = Players.MaxPlayers,\n\t\tfps = fps,\n\t\tping = pingN > 0 and math.floor(pingSum / pingN + 0.5) or 0,\n\t\tmem = math.floor(Stats:GetTotalMemoryUsageMb() + 0.5),\n\t\tver = game.PlaceVersion,\n\t\tup = SERVER_START,\n\t\tpriv = IS_PRIVATE,\n\t\tpl = pl,\n\t\tt = { [\".sv\"] = \"timestamp\" },\n\t}\nend\n\n------------------------------------------------------------------------\n-- Envoi group\u00e9\n------------------------------------------------------------------------\nlocal function flush(closing)\n\tlocal body = {}\n\tlocal now = os.time()\n\tlocal count = #Players:GetPlayers()\n\n\tif closing then\n\t\tbody[\"live/\" .. JOB_KEY] = NULL\n\telse\n\t\tbody[\"live/\" .. JOB_KEY] = buildLive()\n\t\tbody[\"m/\" .. minuteKey(now) .. \"/\" .. JOB_KEY] = count\n\n\t\tlocal hk = hourKey(now)\n\t\tif hk ~= currentHour then\n\t\t\tcurrentHour, hourPeak, hourSum, hourN = hk, 0, 0, 0\n\t\tend\n\t\thourPeak = math.max(hourPeak, count)\n\t\thourSum = hourSum + count\n\t\thourN = hourN + 1\n\t\tbody[\"h/\" .. hk .. \"/\" .. JOB_KEY] = { pk = hourPeak, s = hourSum, n = hourN, fs = CONFIG.FLUSH_SECONDS }\n\tend\n\n\tlocal sentInc, sentSet = pendingInc, pendingSet\n\tpendingInc, pendingSet = {}, {}\n\tfor path, n in pairs(sentInc) do\n\t\tbody[path] = { [\".sv\"] = { increment = n } }\n\tend\n\tfor path, v in pairs(sentSet) do\n\t\tbody[path] = v\n\tend\n\n\tlocal ok = request(\"PATCH\", \"\", body)\n\tif not ok then\n\t\t-- on remet en file pour le prochain envoi\n\t\tfor path, n in pairs(sentInc) do inc(path, n) end\n\t\tfor path, v in pairs(sentSet) do\n\t\t\tif pendingSet[path] == nil then pendingSet[path] = v end\n\t\tend\n\tend\n\treturn ok\nend\n\n------------------------------------------------------------------------\n-- Statistiques publiques du jeu (visites, favoris, likes)\n------------------------------------------------------------------------\nlocal function fetchUniverse()\n\tlocal uid = game.GameId\n\tif uid == 0 then return end\n\tlocal okA, rawA = pcall(function()\n\t\treturn HttpService:GetAsync(\"https://games.roproxy.com/v1/games?universeIds=\" .. uid)\n\tend)\n\tlocal okB, rawB = pcall(function()\n\t\treturn HttpService:GetAsync(\"https://games.roproxy.com/v1/games/votes?universeIds=\" .. uid)\n\tend)\n\tif not okA then return end\n\tlocal okDA, a = pcall(function() return HttpService:JSONDecode(rawA) end)\n\tif not okDA or not a.data or not a.data[1] then return end\n\tlocal g = a.data[1]\n\tlocal up, down = nil, nil\n\tif okB then\n\t\tlocal okDB, b = pcall(function() return HttpService:JSONDecode(rawB) end)\n\t\tif okDB and b.data and b.data[1] then\n\t\t\tup, down = b.data[1].upVotes, b.data[1].downVotes\n\t\tend\n\tend\n\tpendingSet[\"uni/now\"] = {\n\t\tname = g.name, visits = g.visits, playing = g.playing, fav = g.favoritedCount,\n\t\tup = up, down = down, maxp = g.maxPlayers, created = g.created, updated = g.updated,\n\t\tt = { [\".sv\"] = \"timestamp\" },\n\t}\n\tpendingSet[\"uni/h/\" .. hourKey()] = { v = g.visits, f = g.favoritedCount, up = up, dn = down }\nend\n\n------------------------------------------------------------------------\n-- M\u00e9nage : supprime les donn\u00e9es minute > 3 jours et le fil > 2 jours\n------------------------------------------------------------------------\nlocal function cleanup()\n\tlocal now = os.time()\n\tlocal function shallowKeys(node)\n\t\tlocal ok, res = pcall(function()\n\t\t\treturn HttpService:RequestAsync({\n\t\t\t\tUrl = BASE .. \"/\" .. node .. \".json?shallow=true&auth=\" .. CONFIG.SECRET,\n\t\t\t\tMethod = \"GET\",\n\t\t\t})\n\t\tend)\n\t\tif not ok or not res.Success then return {} end\n\t\tlocal okD, data = pcall(function() return HttpService:JSONDecode(res.Body) end)\n\t\tif not okD or type(data) ~= \"table\" then return {} end\n\t\treturn data\n\tend\n\tlocal body, n = {}, 0\n\tlocal mLimit = minuteKey(now - 3 * 86400)\n\tfor k in pairs(shallowKeys(\"m\")) do\n\t\tif k < mLimit and n < 2000 then body[\"m/\" .. k] = NULL; n = n + 1 end\n\tend\n\tlocal fLimit = string.format(\"%013d\", (now - 2 * 86400) * 1000)\n\tfor k in pairs(shallowKeys(\"f\")) do\n\t\tif k < fLimit and n < 4000 then body[\"f/\" .. k] = NULL; n = n + 1 end\n\tend\n\tif n > 0 then request(\"PATCH\", \"\", body) end\nend\n\n------------------------------------------------------------------------\n-- Boucles\n------------------------------------------------------------------------\ninc(\"d/\" .. dayKey() .. \"/srv\")\n\ntask.spawn(function()\n\ttask.wait(3)\n\tfetchUniverse()\n\twhile true do\n\t\tflush(false)\n\t\ttask.wait(CONFIG.FLUSH_SECONDS)\n\tend\nend)\n\ntask.spawn(function()\n\twhile true do\n\t\ttask.wait(CONFIG.UNIVERSE_SECONDS)\n\t\tfetchUniverse()\n\tend\nend)\n\ntask.spawn(function()\n\ttask.wait(math.random(60, 600))\n\tif math.random() < 0.25 then cleanup() end\nend)\n\ngame:BindToClose(function()\n\tfor _, p in ipairs(Players:GetPlayers()) do onPlayerRemoving(p) end\n\tflush(true)\nend)\n\nprint(\"[Analytics] \ud83d\udcca Statistiques en direct activ\u00e9es (serveur \" .. JOB_KEY .. \")\")\n";
+const LUA_CLIENT = "--[[\n\tROBLOX LIVE ANALYTICS \u2014 script client (d\u00e9tection de l'appareil)\n\t\u00c0 placer dans : StarterPlayer > StarterPlayerScripts  (type : LocalScript)\n]]\n\nlocal ReplicatedStorage = game:GetService(\"ReplicatedStorage\")\nlocal UserInputService = game:GetService(\"UserInputService\")\nlocal GuiService = game:GetService(\"GuiService\")\nlocal VRService = game:GetService(\"VRService\")\n\nlocal remote = ReplicatedStorage:WaitForChild(\"AnalyticsDevice\", 30)\nif not remote then return end\n\ntask.wait(2) -- laisse le temps \u00e0 la cam\u00e9ra de conna\u00eetre la taille de l'\u00e9cran\n\nlocal device = \"pc\"\nif VRService.VREnabled then\n\tdevice = \"vr\"\nelseif GuiService:IsTenFootInterface() then\n\tdevice = \"console\"\nelseif UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then\n\tlocal cam = workspace.CurrentCamera\n\tlocal size = cam and cam.ViewportSize or Vector2.new(0, 0)\n\tif math.min(size.X, size.Y) >= 700 then\n\t\tdevice = \"tablet\"\n\telse\n\t\tdevice = \"mobile\"\n\tend\nend\n\nremote:FireServer(device)\n";
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const NF = new Intl.NumberFormat("fr-BE");
+const NF1 = new Intl.NumberFormat("fr-BE", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const NFC = new Intl.NumberFormat("fr-BE", { notation: "compact", maximumFractionDigits: 1 });
+const isNum = n => typeof n === "number" && isFinite(n);
+const fmt = n => isNum(n) ? NF.format(Math.round(n)) : "–";
+const fmt1 = n => isNum(n) ? NF1.format(n) : "–";
+const fmtC = n => isNum(n) ? (Math.abs(n) >= 10000 ? NFC.format(n) : NF.format(Math.round(n))) : "–";
+const pct = (n, d = 1) => isNum(n) ? (n * 100).toFixed(d).replace(".", ",") + " %" : "–";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sum = a => a.reduce((x, y) => x + (isNum(y) ? y : 0), 0);
+const pad = (n, l = 2) => String(n).padStart(l, "0");
+function dur(sec) {
+  if (!isNum(sec)) return "–";
+  sec = Math.max(0, Math.round(sec));
+  if (sec < 60) return sec + " s";
+  const m = Math.floor(sec / 60);
+  if (m < 60) return m + " min";
+  const h = Math.floor(m / 60);
+  return h + " h " + pad(m % 60);
+}
+function ago(ms) {
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 10) return "à l'instant";
+  if (s < 60) return "il y a " + Math.round(s) + " s";
+  if (s < 3600) return "il y a " + Math.round(s / 60) + " min";
+  if (s < 86400) return "il y a " + Math.round(s / 3600) + " h";
+  return "il y a " + Math.round(s / 86400) + " j";
+}
+// Clés de temps en UTC, identiques au script Roblox
+const kD = t => { const d = new Date(t); return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()); };
+const kH = t => kD(t) + pad(new Date(t).getUTCHours());
+const kM = t => kH(t) + pad(new Date(t).getUTCMinutes());
+const pk = k => Date.UTC(+k.slice(0, 4), +k.slice(4, 6) - 1, +k.slice(6, 8), +(k.slice(8, 10) || 0), +(k.slice(10, 12) || 0));
+const DAY = 86400e3, HOUR = 3600e3;
+const WD = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+const fmtDay = t => new Date(t).toLocaleDateString("fr-BE", { day: "numeric", month: "short", timeZone: "UTC" });
+const fmtDayLong = t => new Date(t).toLocaleDateString("fr-BE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const fmtHM = t => new Date(t).toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
+let regionNames; try { regionNames = new Intl.DisplayNames(["fr"], { type: "region" }); } catch (e) { regionNames = null; }
+const countryName = c => { if (!c || c === "??") return "Inconnu"; try { return regionNames ? regionNames.of(c) : c; } catch (e) { return c; } };
+const flag = c => (c && /^[A-Z]{2}$/.test(c)) ? String.fromCodePoint(...[...c].map(x => 127397 + x.charCodeAt(0))) : "🏳️";
+const DEV = { pc: "Ordinateur", mobile: "Téléphone", tablet: "Tablette", console: "Console", vr: "Casque VR", "?": "Inconnu" };
+const SB = { a_lt1: "Moins d'1 min", b_1_5: "1 à 5 min", c_5_15: "5 à 15 min", d_15_30: "15 à 30 min", e_30_60: "30 à 60 min", f_60p: "Plus d'1 h" };
+
+/* ---------------- Configuration ---------------- */
+function loadCfg() { try { return JSON.parse(localStorage.getItem("studiostats_cfg") || "null"); } catch (e) { return null; } }
+function saveCfg(c) { try { if (c) localStorage.setItem("studiostats_cfg", JSON.stringify(c)); else localStorage.removeItem("studiostats_cfg"); } catch (e) { } }
+let cfg = loadCfg();
+const isDemo = () => !(cfg && cfg.url && cfg.secret);
+
+/* ---------------- État ---------------- */
+const D = { live: {}, m: {}, h: {}, d: {}, c: {}, uni: {}, uniH: {}, f: {}, names: {}, ping: null };
+const S = { view: "direct", period: 30, evSel: null, funnel: null, plSearch: "", lastOk: 0, err: null, seenFeed: new Set(), firstFeed: true, conn: null };
+
+/* ---------------- Accès aux données ---------------- */
+function applyQuery(obj, p) {
+  if (!obj || typeof obj !== "object") return obj ?? null;
+  let keys = Object.keys(obj).sort();
+  if (p.startAt) { const s = JSON.parse(p.startAt); keys = keys.filter(k => k >= s); }
+  if (p.limitToLast) keys = keys.slice(-p.limitToLast);
+  const o = {}; keys.forEach(k => o[k] = obj[k]); return o;
+}
+async function fb(path, params = {}) {
+  if (isDemo()) {
+    let node = DEMO.db; for (const part of path.split("/").filter(Boolean)) node = node ? node[part] : undefined;
+    return JSON.parse(JSON.stringify(applyQuery(node, params) ?? null));
+  }
+  const u = new URL(cfg.url.replace(/\/+$/, "") + "/" + path + ".json");
+  u.searchParams.set("auth", cfg.secret);
+  for (const k in params) u.searchParams.set(k, params[k]);
+  const r = await fetch(u.toString(), { cache: "no-store" });
+  if (!r.ok) { let t = ""; try { t = (await r.json()).error; } catch (e) { } const er = new Error(t || ("HTTP " + r.status)); er.status = r.status; throw er; }
+  return r.json();
+}
+const since = (ms, fn) => ({ orderBy: '"$key"', startAt: JSON.stringify(fn(Date.now() - ms)) });
+
+async function loadFast() {
+  const [live, f] = await Promise.all([fb("live"), fb("f", { orderBy: '"$key"', limitToLast: 60 })]);
+  D.live = live || {}; D.f = f || {};
+}
+async function loadMinutes() { D.m = (await fb("m", since(49 * HOUR, kM))) || {}; }
+async function loadFull() {
+  const [h, d, c, uni, uniH, names, ping] = await Promise.all([
+    fb("h", since(36 * DAY, kH)), fb("d"), fb("c"), // clés jour = nombres pour Firebase : pas de filtre côté serveur
+    fb("uni/now"), fb("uni/h", since(185 * DAY, kH)), fb("names"), fb("ping"),
+  ]);
+  Object.assign(D, { h: h || {}, d: d || {}, c: c || {}, uni: uni || {}, uniH: uniH || {}, names: names || {}, ping });
+}
+let busy = false;
+async function refresh(level) {
+  if (busy) return; busy = true;
+  try {
+    if (level >= 3) await loadFull();
+    if (level >= 2) await loadMinutes();
+    await loadFast();
+    S.lastOk = Date.now(); S.err = null;
+  } catch (e) { S.err = e; console.warn("[Studio Stats]", e); }
+  busy = false;
+  if (level >= 3 || S.view === "direct") render(); else renderHeader();
+}
+
+/* ---------------- Calculs ---------------- */
+const now = () => Date.now();
+function liveServers() {
+  return Object.entries(D.live || {}).filter(([, v]) => v && isNum(v.t) && now() - v.t < 90e3).map(([k, v]) => ({ id: k, ...v }));
+}
+function minuteTotals() {
+  const out = new Map();
+  for (const [k, v] of Object.entries(D.m || {})) out.set(pk(k), typeof v === "number" ? v : sum(Object.values(v || {})));
+  return out;
+}
+function hourAvg(hk) {
+  const e = D.h[hk]; if (!e) return null;
+  const start = pk(hk); const covered = Math.min(3600, Math.max(15, (now() - start) / 1000));
+  return sum(Object.values(e).map(x => (x.s || 0) * (x.fs || 15))) / covered;
+}
+function hourPeak(hk) { const e = D.h[hk]; return e ? sum(Object.values(e).map(x => x.pk || 0)) : null; }
+function peakByDay() {
+  const out = {};
+  for (const hk of Object.keys(D.h || {})) { const d = hk.slice(0, 8), p = hourPeak(hk); out[d] = Math.max(out[d] || 0, p || 0); }
+  return out;
+}
+function dayKeys(n, offset = 0) {
+  const arr = []; const t0 = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+  for (let i = n - 1 + offset; i >= offset; i--) arr.push(kD(t0 - i * DAY));
+  return arr;
+}
+const todayK = () => kD(now());
+const dv = (k, f) => { const r = D.d[k]; return r && isNum(r[f]) ? r[f] : 0; };
+function periodSum(f, n, offset = 0) { return sum(dayKeys(n, offset).map(k => dv(k, f))); }
+function hasData(n, offset) { return dayKeys(n, offset).some(k => D.d[k]); }
+function mergeMaps(field, n) {
+  const out = {};
+  for (const k of dayKeys(n)) { const o = (D.d[k] || {})[field]; if (o) for (const [a, b] of Object.entries(o)) out[a] = (out[a] || 0) + (b || 0); }
+  return out;
+}
+function mergeNested(field, n) {
+  const out = {};
+  for (const k of dayKeys(n)) { const o = (D.d[k] || {})[field]; if (o) for (const [a, b] of Object.entries(o)) { const t = out[a] || (out[a] = {}); for (const [x, y] of Object.entries(b || {})) t[x] = (t[x] || 0) + (y || 0); } }
+  return out;
+}
+// comparaison sur jours complets : les n jours d'avant aujourd'hui vs les n jours précédents
+function dlt(f, n, ratioOf) {
+  if (!hasData(n, n + 1)) return null;
+  if (ratioOf) { const a = periodSum(ratioOf, n, 1), b = periodSum(ratioOf, n, n + 1); return a && b ? delta(periodSum(f, n, 1) / a, periodSum(f, n, n + 1) / b) : null; }
+  return delta(periodSum(f, n, 1), periodSum(f, n, n + 1));
+}
+function delta(cur, prev, invert) {
+  if (!isNum(prev) || prev === 0 || !isNum(cur)) return null;
+  return { v: (cur - prev) / prev, invert };
+}
+
+/* ---------------- Infobulle ---------------- */
+const tip = $("#tip");
+function showTip(html, e) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect(); let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => tip.style.opacity = 0;
+
+/* ---------------- Graphiques SVG ---------------- */
+function niceMax(v) {
+  if (!(v > 0)) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+function yTicks(max, fmtY) { const m = niceMax(max); return [0, .25, .5, .75, 1].map(f => ({ v: m * f, l: fmtY(m * f) })); }
+const NS = "http://www.w3.org/2000/svg";
+function svgEl(w, h) { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${w} ${h}`); s.setAttribute("role", "img"); return s; }
+function add(parent, tag, attrs, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; }
+function emptyChart(el, msg) { el.innerHTML = `<div class="empty">${esc(msg || "Pas encore de données sur cette période.")}</div>`; }
+
+function lineChart(el, o) {
+  const pts = o.pts.filter(p => isNum(p.y));
+  if (!pts.length) return emptyChart(el, o.empty);
+  const W = Math.max(300, el.clientWidth || 600), H = o.height || 220, L = 46, R = 12, T = 12, B = 26;
+  const x0 = o.xMin ?? pts[0].t, x1 = o.xMax ?? pts[pts.length - 1].t;
+  const all = pts.map(p => p.y).concat((o.pts2 || []).filter(p => isNum(p.y)).map(p => p.y));
+  const ticks = yTicks(Math.max(...all, o.yMinMax || 0), o.fmtY || fmtC); const ymax = ticks[4].v;
+  const X = t => L + (x1 === x0 ? (W - L - R) / 2 : (t - x0) / (x1 - x0) * (W - L - R));
+  const Y = v => T + (1 - v / ymax) * (H - T - B);
+  const s = svgEl(W, H);
+  ticks.forEach((tk, i) => { add(s, "line", { x1: L, x2: W - R, y1: Y(tk.v), y2: Y(tk.v), class: i ? "gl" : "base" }); add(s, "text", { x: L - 8, y: Y(tk.v) + 4, "text-anchor": "end", class: "ax" }, tk.l); });
+  const nx = Math.max(2, Math.min(7, Math.floor((W - L - R) / 90)));
+  for (let i = 0; i <= nx; i++) { const t = x0 + (x1 - x0) * i / nx; add(s, "text", { x: X(t), y: H - 6, "text-anchor": i === 0 ? "start" : i === nx ? "end" : "middle", class: "ax" }, (o.fmtX || fmtDay)(t)); }
+  const path = arr => { let d = "", pen = false, prev = null; for (const p of arr) { const gap = !isNum(p.y) || (prev && o.gap && p.t - prev.t > o.gap); if (!isNum(p.y)) { pen = false; continue; } d += (pen && !gap ? "L" : "M") + X(p.t).toFixed(1) + " " + Y(p.y).toFixed(1); pen = true; prev = p; } return d; };
+  if (o.pts2) add(s, "path", { d: path(o.pts2), class: "ln2" });
+  if (o.area !== false && !o.gap) add(s, "path", { d: path(pts) + `L${X(pts[pts.length - 1].t)} ${Y(0)}L${X(pts[0].t)} ${Y(0)}Z`, class: "ar" });
+  add(s, "path", { d: path(o.pts), class: "ln" });
+  if (o.endLabel) { const lp = pts[pts.length - 1]; add(s, "circle", { cx: X(lp.t), cy: Y(lp.y), r: 4, class: "pt" }); }
+  const xh = add(s, "line", { y1: T, y2: H - B, class: "xh", visibility: "hidden" });
+  const dot = add(s, "circle", { r: 4.5, class: "pt", visibility: "hidden" });
+  const hit = add(s, "rect", { x: L, y: 0, width: W - L - R, height: H, fill: "transparent" });
+  const map2 = o.pts2 ? new Map(o.pts2.map(p => [p.t, p])) : null;
+  hit.addEventListener("pointermove", e => {
+    const r = s.getBoundingClientRect(); const mx = (e.clientX - r.left) / r.width * W;
+    let best = pts[0], bd = Infinity; for (const p of pts) { const d = Math.abs(X(p.t) - mx); if (d < bd) { bd = d; best = p; } }
+    xh.setAttribute("x1", X(best.t)); xh.setAttribute("x2", X(best.t)); xh.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", X(best.t)); dot.setAttribute("cy", Y(best.y)); dot.setAttribute("visibility", "visible");
+    showTip((o.tip || (p => `${fmtDay(p.t)}<br><b>${(o.fmtY || fmt)(p.y)}</b>`))(best, map2 && map2.get(best.t)), e);
+  });
+  hit.addEventListener("pointerleave", () => { hideTip(); xh.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); });
+  el.innerHTML = ""; el.appendChild(s);
+}
+
+function barChart(el, o) {
+  const pts = o.pts;
+  if (!pts.length || !pts.some(p => isNum(p.y) && p.y > 0)) return emptyChart(el, o.empty);
+  const W = Math.max(300, el.clientWidth || 600), H = o.height || 220, L = 46, R = 8, T = 12, B = 26;
+  const ticks = yTicks(Math.max(...pts.map(p => p.y || 0)), o.fmtY || fmtC); const ymax = ticks[4].v;
+  const Y = v => T + (1 - v / ymax) * (H - T - B);
+  const s = svgEl(W, H);
+  ticks.forEach((tk, i) => { add(s, "line", { x1: L, x2: W - R, y1: Y(tk.v), y2: Y(tk.v), class: i ? "gl" : "base" }); add(s, "text", { x: L - 8, y: Y(tk.v) + 4, "text-anchor": "end", class: "ax" }, tk.l); });
+  const slot = (W - L - R) / pts.length, gap = Math.min(2, slot * .25), bw = Math.max(1, slot - gap);
+  const every = Math.ceil(pts.length / Math.max(2, Math.floor((W - L - R) / 70)));
+  pts.forEach((p, i) => {
+    const x = L + i * slot + gap / 2, y = Y(p.y || 0), h = Math.max(0, Y(0) - y), r = Math.min(4, bw / 2, h);
+    const g = add(s, "g", {});
+    const hl = add(g, "rect", { x: L + i * slot, y: T, width: slot, height: H - T - B, class: "hl", opacity: 0 });
+    if (h > 0) add(g, "path", { d: `M${x} ${Y(0)}V${y + r}Q${x} ${y} ${x + r} ${y}H${x + bw - r}Q${x + bw} ${y} ${x + bw} ${y + r}V${Y(0)}Z`, class: "bx" + (p.cur ? " cur" : "") });
+    if ((pts.length - 1 - i) % every === 0) add(s, "text", { x: x + bw / 2, y: H - 6, "text-anchor": "middle", class: "ax" }, p.label ?? fmtDay(p.t));
+    const hit = add(g, "rect", { x: L + i * slot, y: 0, width: slot, height: H, fill: "transparent" });
+    hit.addEventListener("pointermove", e => { hl.setAttribute("opacity", 1); showTip((o.tip || (p => `${p.long || fmtDayLong(p.t)}${p.cur ? " (en cours)" : ""}<br><b>${(o.fmtY || fmt)(p.y)}</b>`))(p), e); });
+    hit.addEventListener("pointerleave", () => { hl.setAttribute("opacity", 0); hideTip(); });
+  });
+  el.innerHTML = ""; el.appendChild(s);
+}
+
+function hbars(el, items, o = {}) {
+  if (!items.length || !items.some(i => i.v > 0)) return emptyChart(el, o.empty);
+  const max = Math.max(...items.map(i => i.v));
+  el.innerHTML = items.map(i => `<div class="bar" data-t="${esc(i.tip || "")}"><span class="name">${i.html || esc(i.name)}</span><span><i class="fill" style="width:${(i.v / max * 100).toFixed(1)}%"></i></span><span class="val">${esc(i.label)}</span></div>`).join("");
+  el.querySelectorAll(".bar").forEach(b => { b.addEventListener("pointermove", e => b.dataset.t && showTip(b.dataset.t, e)); b.addEventListener("pointerleave", hideTip); });
+}
+
+function tile(t) {
+  let d = "";
+  if (t.delta) { const v = t.delta.v, good = t.delta.invert ? v < 0 : v > 0, cls = Math.abs(v) < .005 ? "flat" : good ? "up" : "down"; d = `<span class="delta ${cls}">${v > 0 ? "▲" : v < 0 ? "▼" : "■"} ${pct(Math.abs(v), 0)} <span style="color:var(--muted);font-weight:400">${esc(t.vs || "vs période d'avant")}</span></span>`; }
+  else if (t.hint) d = `<span class="delta flat" style="font-weight:400">${t.hint}</span>`;
+  return `<div class="card tile"><span class="lab">${esc(t.lab)}</span><span class="num">${t.val}</span>${d}</div>`;
+}
+
+/* ---------------- Rendu : en-tête ---------------- */
+function renderHeader() {
+  const srv = liveServers();
+  const name = D.uni && D.uni.name ? D.uni.name : (isDemo() ? DEMO.name : "Mon jeu");
+  $("#gameName").textContent = name;
+  document.title = name + " — Studio Stats";
+  const pill = $("#statusPill"), txt = $("#statusText");
+  pill.className = "pill";
+  if (isDemo()) { pill.classList.add("demo"); txt.textContent = "Démo"; }
+  else if (S.err && !S.lastOk) { pill.classList.add("off"); txt.textContent = "Connexion impossible"; }
+  else if (srv.length) { pill.classList.add("live"); txt.textContent = "En direct · " + fmt(sum(srv.map(s => s.p))) + " joueurs"; }
+  else { pill.classList.add("off"); txt.textContent = "Aucun serveur ouvert"; }
+  $("#stamp").textContent = S.lastOk ? "Mis à jour à " + new Date(S.lastOk).toLocaleTimeString("fr-BE") : "";
+  $("#demoBanner").hidden = !isDemo();
+  const eb = $("#errBanner");
+  if (S.err && !isDemo()) {
+    eb.hidden = false;
+    const st = S.err.status;
+    $("#errText").innerHTML = st === 401 ? "<b>Secret refusé</b> — vérifie le code secret de ta base." :
+      st === 404 ? "<b>Adresse introuvable</b> — vérifie l'adresse de ta base." :
+      "<b>Impossible de joindre ta base Firebase.</b> Si tu regardes ce site dans claude.ai, la connexion vers l'extérieur y est bloquée : ouvre la version hébergée (GitHub Pages ou fichier ouvert dans ton navigateur).";
+  } else eb.hidden = true;
+}
+
+/* ---------------- Rendu : En direct ---------------- */
+function renderDirect() {
+  const srv = liveServers().sort((a, b) => b.p - a.p);
+  const ccu = sum(srv.map(s => s.p));
+  const mt = minuteTotals();
+  const t = now(), start = t - DAY;
+  const keys = [...mt.keys()].sort((a, b) => a - b);
+  const today = keys.filter(k => k >= start).map(k => ({ t: k, y: mt.get(k) }));
+  const yest = keys.filter(k => k >= start - DAY && k < start + 60e3).map(k => ({ t: k + DAY, y: mt.get(k) }));
+  if (today.length) today.push({ t, y: ccu });
+  const lm = new Date(); lm.setHours(0, 0, 0, 0);
+  const peakToday = Math.max(ccu, ...today.filter(p => p.t >= lm.getTime()).map(p => p.y), 0);
+  const nearY = yest.length ? yest.reduce((b, p) => Math.abs(p.t - t) < Math.abs(b.t - t) ? p : b) : null;
+  $("#ccuNow").textContent = fmt(ccu);
+  $("#heroPill").hidden = !srv.length;
+  let sub = `${srv.length} serveur${srv.length > 1 ? "s" : ""} · pic aujourd'hui ${fmt(peakToday)}`;
+  if (nearY && Math.abs(nearY.t - t) < 10 * 60e3 && nearY.y > 0) { const v = (ccu - nearY.y) / nearY.y; sub += ` · <span class="${v >= 0 ? "up" : "down"}">${v >= 0 ? "▲" : "▼"} ${pct(Math.abs(v), 0)}</span> vs hier à cette heure`; }
+  $("#ccuSub").innerHTML = srv.length || today.length ? sub : (isDemo() ? sub : "Aucun serveur ouvert en ce moment. Dès qu'un joueur rejoint ton jeu, ça s'allume ici.");
+  lineChart($("#chMinute"), {
+    pts: today, pts2: yest, xMin: start, xMax: t, fmtX: fmtHM, gap: 5 * 60e3, area: false, endLabel: true, height: 230,
+    empty: "La courbe se remplit dès que ton jeu envoie ses premières minutes.",
+    tip: (p, q) => `${fmtHM(p.t)}<br><b>${fmt(p.y)}</b> joueurs${q ? `<br>hier : ${fmt(q.y)}` : ""}`,
+  });
+  // KPI du jour
+  const tk = todayK(), players = srv.reduce((n, s) => n + Object.keys(s.pl || {}).length, 0) || 1;
+  const fps = srv.length ? sum(srv.map(s => (s.fps || 0) * Math.max(1, s.p))) / sum(srv.map(s => Math.max(1, s.p))) : null;
+  const ping = srv.length ? sum(srv.map(s => (s.ping || 0) * Math.max(1, s.p))) / sum(srv.map(s => Math.max(1, s.p))) : null;
+  const ss = dv(tk, "ss");
+  $("#liveKpis").innerHTML = [
+    { lab: "Joueurs uniques aujourd'hui", val: fmt(dv(tk, "u")), hint: "depuis minuit UTC" },
+    { lab: "Nouveaux joueurs aujourd'hui", val: fmt(dv(tk, "nu")), hint: dv(tk, "u") ? pct(dv(tk, "nu") / dv(tk, "u"), 0) + " des joueurs du jour" : "" },
+    { lab: "Robux aujourd'hui", val: fmt(dv(tk, "rb")), hint: fmt(dv(tk, "pu")) + " achat" + (dv(tk, "pu") > 1 ? "s" : "") },
+    { lab: "Session moyenne aujourd'hui", val: ss ? dur(dv(tk, "pt") / ss) : "–", hint: fmt(ss) + " sessions terminées" },
+    { lab: "FPS serveur moyen", val: fps ? fmt(fps) : "–", hint: fps ? (fps >= 55 ? '<span class="up">● fluide</span>' : fps >= 40 ? '<span style="color:var(--warn)">● un peu chargé</span>' : '<span class="down">● ça rame</span>') : "" },
+    { lab: "Ping moyen", val: ping ? fmt(ping) + " ms" : "–", hint: ping ? (ping < 120 ? '<span class="up">● bon</span>' : ping < 250 ? '<span style="color:var(--warn)">● moyen</span>' : '<span class="down">● élevé</span>') : "" },
+    { lab: "Remplissage des serveurs", val: srv.length ? pct(ccu / Math.max(1, sum(srv.map(s => s.max || 0))), 0) : "–", hint: srv.length ? fmt(ccu) + " / " + fmt(sum(srv.map(s => s.max || 0))) + " places" : "" },
+    { lab: "Arrivées aujourd'hui", val: fmt(dv(tk, "j")), hint: dv(tk, "u") ? fmt1(dv(tk, "j") / dv(tk, "u")) + " par joueur" : "" },
+  ].map(tile).join("");
+  // Serveurs
+  $("#srvCount").textContent = srv.length ? `${srv.length} en ligne` : "";
+  $("#srvBody").innerHTML = srv.length ? srv.map(s => {
+    const fill = s.max ? s.p / s.max : 0;
+    return `<tr><td><span style="font-family:var(--mono);font-size:12px">${esc(s.id.slice(0, 8))}</span>${s.priv ? ' <span class="chip">privé</span>' : ""}</td>
+    <td class="n"><div style="display:flex;gap:8px;align-items:center;justify-content:flex-end"><span class="meter" aria-hidden="true"><i style="width:${(fill * 100).toFixed(0)}%"></i></span>${s.p}/${s.max || "?"}</div></td>
+    <td class="n ${s.fps < 40 ? "down" : ""}">${fmt(s.fps)}</td><td class="n ${s.ping > 250 ? "down" : ""}">${fmt(s.ping)} ms</td>
+    <td class="n hide-md">${fmt(s.mem)} Mo</td><td class="n hide-md">v${esc(s.ver)}</td><td class="n">${dur(t / 1000 - s.up)}</td></tr>`;
+  }).join("") : `<tr><td colspan="7" class="empty">Aucun serveur ouvert.</td></tr>`;
+  // Joueurs en ligne
+  const q = S.plSearch.toLowerCase();
+  const pl = srv.flatMap(s => Object.entries(s.pl || {}).map(([uid, p]) => ({ uid, ...p }))).filter(p => !q || (p.n + " " + p.d).toLowerCase().includes(q)).sort((a, b) => a.j - b.j);
+  $("#plBody").innerHTML = pl.length ? pl.slice(0, 300).map(p => `<tr><td><b>${esc(p.d || p.n)}</b> <span style="color:var(--muted);font-size:12px">@${esc(p.n)}</span></td>
+    <td><span class="dev">${esc(DEV[p.dev] || DEV["?"])}</span></td><td>${flag(p.cc)} ${esc(countryName(p.cc))}</td>
+    <td class="n">${dur(t / 1000 - p.j)}</td><td class="n">${p.pi != null ? fmt(p.pi) + " ms" : "–"}</td>
+    <td class="hide-sm">${p.nw ? '<span class="chip hot">nouveau</span> ' : ""}${p.pr ? '<span class="chip">Premium</span>' : ""}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">${q ? "Personne ne correspond." : "Personne en ligne pour l'instant."}</td></tr>`;
+  renderFeed();
+}
+function renderFeed() {
+  const items = Object.entries(D.f || {}).sort((a, b) => a[0] < b[0] ? 1 : -1).slice(0, 60);
+  const el = $("#feed");
+  if (!items.length) { el.innerHTML = `<div class="empty">Rien pour l'instant. Les arrivées, départs et achats apparaîtront ici en direct.</div>`; return; }
+  el.innerHTML = items.map(([k, e]) => {
+    const who = `<b>${esc(e.d || e.n || "Quelqu'un")}</b>`, x = e.x || {};
+    let ic = "•", txt = "";
+    if (e.k === "join") { ic = '<span class="up">→</span>'; txt = `${who} a rejoint${x.new ? ' <span class="chip hot">nouveau</span>' : ""}${x.cc && x.cc !== "??" ? " · " + flag(x.cc) : ""}`; }
+    else if (e.k === "leave") { ic = '<span style="color:var(--muted)">←</span>'; txt = `${who} est parti après ${dur(x.dur)}`; }
+    else if (e.k === "buy") { ic = '<span style="color:var(--hot);font-weight:700">R$</span>'; txt = `${who} a acheté <b>${esc(x.item)}</b> · ${fmt(x.r)} R$`; }
+    else if (e.k === "event") { ic = '<span style="color:var(--accent)">★</span>'; txt = `${who} · <code>${esc(x.e)}</code>${x.v != null && x.v !== 1 ? " (" + fmt(x.v) + ")" : ""}`; }
+    const isNew = !S.firstFeed && !S.seenFeed.has(k);
+    return `<div class="it${isNew ? " new-in" : ""}"><span class="ic">${ic}</span><span>${txt}</span><span class="tm">${ago(e.t)}</span></div>`;
+  }).join("");
+  items.forEach(([k]) => S.seenFeed.add(k)); S.firstFeed = false;
+}
+
+/* ---------------- Rendu : Audience ---------------- */
+function dayPts(n, fn) { const tk = todayK(); return dayKeys(n).map(k => ({ t: pk(k), y: fn(k), cur: k === tk })); }
+function renderAudience() {
+  const n = S.period, pb = peakByDay();
+  const u = periodSum("u", n), up = periodSum("u", n, n), nu = periodSum("nu", n), nup = periodSum("nu", n, n);
+  const has = hasData(n, n);
+  const pk1 = Math.max(0, ...dayKeys(n).map(k => pb[k] || 0)), pk0 = Math.max(0, ...dayKeys(n, n).map(k => pb[k] || 0)), pkc = Math.max(0, ...dayKeys(n, 1).map(k => pb[k] || 0));
+  $("#audKpis").innerHTML = [
+    { lab: "Joueurs uniques par jour (moy.)", val: fmt(u / n), delta: dlt("u", n) },
+    { lab: "Nouveaux joueurs", val: fmt(nu), delta: dlt("nu", n) },
+    { lab: "Part de nouveaux", val: u ? pct(nu / u, 0) : "–", hint: "du total des joueurs du jour" },
+    { lab: "Pic de joueurs connectés", val: fmt(pk1), delta: pk0 && dayKeys(n, n).every(k => pb[k] != null) ? delta(pkc, pk0) : null },
+  ].map(tile).join("");
+  barChart($("#chDau"), { pts: dayPts(n, k => dv(k, "u")) });
+  barChart($("#chNew"), { pts: dayPts(n, k => dv(k, "nu")) });
+  barChart($("#chPeak"), { pts: dayPts(n, k => pb[k] || 0) });
+  const hp = []; const h0 = Math.floor(now() / HOUR) * HOUR;
+  for (let t = h0 - 7 * DAY; t <= h0; t += HOUR) hp.push({ t, y: hourAvg(kH(t)) });
+  lineChart($("#chHourly"), { pts: hp, fmtX: t => new Date(t).toLocaleDateString("fr-BE", { weekday: "short", day: "numeric" }), tip: p => `${new Date(p.t).toLocaleString("fr-BE", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}<br><b>${fmt1(p.y)}</b> joueurs en moyenne` });
+  renderHeat();
+}
+function renderHeat() {
+  const acc = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ s: 0, n: 0 })));
+  const lim = now() - 28 * DAY;
+  for (const hk of Object.keys(D.h || {})) {
+    const t = pk(hk); if (t < lim || t > now() - HOUR) continue;
+    const d = new Date(t), dow = (d.getDay() + 6) % 7, hr = d.getHours(), v = hourAvg(hk);
+    if (isNum(v)) { acc[dow][hr].s += v; acc[dow][hr].n++; }
+  }
+  const vals = acc.flat().map(c => c.n ? c.s / c.n : null);
+  if (!vals.some(v => v > 0)) { emptyChart($("#heat"), "Il faut quelques jours de données pour voir tes meilleures heures."); $("#heatTip").textContent = ""; return; }
+  const sorted = vals.filter(isNum).sort((a, b) => a - b), q = f => sorted[Math.floor(f * (sorted.length - 1))];
+  const th = [q(.2), q(.4), q(.6), q(.8)], step = v => !isNum(v) ? 0 : 1 + th.filter(x => v > x).length;
+  let html = `<div class="heat"><span></span>${Array.from({ length: 24 }, (_, h) => `<span class="hl">${h % 3 === 0 ? h + "h" : ""}</span>`).join("")}`;
+  let best = { v: -1 };
+  acc.forEach((row, d) => {
+    html += `<span class="rl">${WD[d]}</span>`;
+    row.forEach((c, h) => { const v = c.n ? c.s / c.n : null; if (v > best.v) best = { v, d, h }; html += `<span class="c" style="background:var(--seq${Math.max(1, step(v))})${isNum(v) ? "" : ";opacity:.4"}" data-t="${WD[d]} ${h}h–${h + 1}h<br><b>${isNum(v) ? fmt1(v) : "–"}</b> joueurs en moyenne"></span>`; });
+  });
+  html += `</div><div class="scale" style="margin-top:8px">moins <i style="background:var(--seq1)"></i><i style="background:var(--seq2)"></i><i style="background:var(--seq3)"></i><i style="background:var(--seq4)"></i><i style="background:var(--seq5)"></i> plus</div>`;
+  const el = $("#heat"); el.innerHTML = html;
+  el.querySelectorAll(".c").forEach(c => { c.addEventListener("pointermove", e => showTip(c.dataset.t, e)); c.addEventListener("pointerleave", hideTip); });
+  const names = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+  $("#heatTip").innerHTML = `Meilleur créneau : <b>${names[best.d]} ${best.h}h–${best.h + 1}h</b> (${fmt1(best.v)} joueurs en moyenne). Publie tes mises à jour un peu avant ce moment pour qu'un maximum de joueurs les voient.`;
+}
+
+/* ---------------- Rendu : Engagement ---------------- */
+function renderEngagement() {
+  const n = S.period, has = hasData(n, n);
+  const pt = periodSum("pt", n), ss = periodSum("ss", n), u = periodSum("u", n), j = periodSum("j", n);
+  const pt0 = periodSum("pt", n, n), ss0 = periodSum("ss", n, n), u0 = periodSum("u", n, n);
+  $("#engKpis").innerHTML = [
+    { lab: "Durée moyenne d'une session", val: ss ? dur(pt / ss) : "–", delta: dlt("pt", n, "ss") },
+    { lab: "Temps de jeu par joueur / jour", val: u ? dur(pt / u) : "–", delta: dlt("pt", n, "u") },
+    { lab: "Sessions par joueur / jour", val: u ? fmt1(j / u) : "–", hint: "combien de fois ils reviennent dans la journée" },
+    { lab: "Temps de jeu total", val: fmt(pt / 3600) + " h", delta: dlt("pt", n) },
+  ].map(tile).join("");
+  barChart($("#chSess"), { pts: dayPts(n, k => dv(k, "ss") ? dv(k, "pt") / dv(k, "ss") / 60 : 0), fmtY: v => fmt1(v), tip: p => `${fmtDayLong(p.t)}<br><b>${dur(p.y * 60)}</b> par session` });
+  barChart($("#chPtu"), { pts: dayPts(n, k => dv(k, "u") ? dv(k, "pt") / dv(k, "u") / 60 : 0), fmtY: v => fmt1(v), tip: p => `${fmtDayLong(p.t)}<br><b>${dur(p.y * 60)}</b> par joueur` });
+  barChart($("#chPt"), { pts: dayPts(n, k => dv(k, "pt") / 3600), tip: p => `${fmtDayLong(p.t)}<br><b>${fmt(p.y)} h</b> de jeu au total` });
+  const sb = mergeMaps("sb", n), tot = sum(Object.values(sb));
+  hbars($("#sessDist"), Object.keys(SB).map(k => ({ name: SB[k], v: sb[k] || 0, label: tot ? pct((sb[k] || 0) / tot, 0) : "–", tip: `${SB[k]}<br><b>${fmt(sb[k] || 0)}</b> sessions` })));
+}
+
+/* ---------------- Rendu : Rétention ---------------- */
+function renderRetention() {
+  const t0 = pk(todayK());
+  const rows = Object.entries(D.c || {}).map(([k, v]) => ({ k, t: pk(k), age: Math.round((t0 - pk(k)) / DAY), ...v })).filter(r => r.n > 0).sort((a, b) => b.t - a.t);
+  const ret = (d, maxAge = 9999) => { const ok = rows.filter(r => r.age >= d + 1 && r.age <= maxAge + d); const n = sum(ok.map(r => r.n)); return n ? sum(ok.map(r => r["d" + d] || 0)) / n : null; };
+  const grade = (v, a, b) => v == null ? "" : v >= a ? '<span class="chip good">très bon</span>' : v >= b ? '<span class="chip warn">correct</span>' : '<span class="chip bad">à améliorer</span>';
+  const r1 = ret(1, 30), r7 = ret(7, 30), r30 = ret(30, 60);
+  $("#retKpis").innerHTML = [
+    { lab: "Rétention J1 (30 derniers jours)", val: pct(r1), hint: grade(r1, .25, .15) },
+    { lab: "Rétention J7", val: pct(r7), hint: grade(r7, .08, .04) },
+    { lab: "Rétention J30", val: pct(r30), hint: grade(r30, .03, .015) },
+    { lab: "Nouveaux joueurs (30 j)", val: fmt(sum(rows.filter(r => r.age < 30).map(r => r.n))), hint: "taille des cohortes" },
+  ].map(tile).join("");
+  const asc = rows.slice(0, 45).reverse();
+  lineChart($("#chRet"), {
+    pts: asc.map(r => ({ t: r.t, y: r.age >= 2 ? (r.d1 || 0) / r.n * 100 : null })),
+    pts2: asc.map(r => ({ t: r.t, y: r.age >= 8 ? (r.d7 || 0) / r.n * 100 : null })),
+    fmtY: v => (Number.isInteger(v) ? fmt(v) : fmt1(v)) + " %", area: false,
+    tip: (p, q) => `Arrivés le ${fmtDayLong(p.t)}<br>J1 : <b>${fmt1(p.y)} %</b>${q && isNum(q.y) ? `<br>J7 : <b>${fmt1(q.y)} %</b>` : ""}`,
+  });
+  const cols = [1, 3, 7, 14, 30];
+  const colMax = cols.map(d => Math.max(0.0001, ...rows.filter(r => r.age >= d + 1).map(r => (r["d" + d] || 0) / r.n)));
+  $("#cohBody").innerHTML = rows.length ? rows.slice(0, 45).map(r => `<tr><td>${fmtDayLong(r.t)}</td><td class="n">${fmt(r.n)}</td>${cols.map((d, i) => {
+    if (r.age < d + 1) return `<td class="cell" style="color:var(--muted)">·</td>`;
+    const v = (r["d" + d] || 0) / r.n, st = Math.max(1, Math.min(5, Math.ceil(v / colMax[i] * 5)));
+    return `<td class="cell" style="background:var(--seq${st});color:${st >= 4 ? "var(--seqtxt)" : "var(--ink)"}" title="${fmt(r["d" + d] || 0)} joueurs revenus">${pct(v, 0)}</td>`;
+  }).join("")}</tr>`).join("") : `<tr><td colspan="7" class="empty">Les cohortes apparaissent après le premier jour de données.</td></tr>`;
+}
+
+/* ---------------- Rendu : Monétisation ---------------- */
+function renderMonetisation() {
+  const n = S.period, has = hasData(n, n);
+  const rb = periodSum("rb", n), rb0 = periodSum("rb", n, n), u = periodSum("u", n), u0 = periodSum("u", n, n), py = periodSum("py", n), pu = periodSum("pu", n);
+  $("#monKpis").innerHTML = [
+    { lab: "Robux dépensés", val: fmt(rb), delta: dlt("rb", n) },
+    { lab: "≈ Ce que tu touches (70 %)", val: fmt(rb * .7), hint: "après la part de Roblox" },
+    { lab: "Robux par joueur unique / jour", val: u ? fmt1(rb / u) : "–", delta: dlt("rb", n, "u") },
+    { lab: "Joueurs qui paient", val: u ? pct(py / u) : "–", hint: `${fmt(py)} payeurs · ${fmt(pu)} achats` },
+  ].map(tile).join("");
+  barChart($("#chRobux"), { pts: dayPts(n, k => dv(k, "rb")), tip: p => `${fmtDayLong(p.t)}${p.cur ? " (en cours)" : ""}<br><b>${fmt(p.y)} R$</b>` });
+  barChart($("#chArpu"), { pts: dayPts(n, k => dv(k, "u") ? dv(k, "rb") / dv(k, "u") : 0), fmtY: v => fmt1(v), tip: p => `${fmtDayLong(p.t)}<br><b>${fmt1(p.y)} R$</b> par joueur` });
+  const pr = mergeNested("pr", n), tot = sum(Object.values(pr).map(x => x.r));
+  const list = Object.entries(pr).sort((a, b) => b[1].r - a[1].r);
+  $("#prodSub").textContent = list.length ? `${list.length} article${list.length > 1 ? "s" : ""} vendus sur ${n} jours` : "";
+  $("#prodBody").innerHTML = list.length ? list.map(([k, v]) => `<tr><td><b>${esc(D.names[k] || k)}</b></td><td><span class="chip ${k.startsWith("pass") ? "" : "hot"}">${k.startsWith("pass") ? "Game pass" : "Produit"}</span></td><td class="n">${fmt(v.c)}</td><td class="n">${fmt(v.r)}</td><td class="n">${tot ? pct(v.r / tot, 0) : "–"}</td></tr>`).join("")
+    : `<tr><td colspan="5" class="empty">Aucune vente sur cette période.</td></tr>`;
+}
+
+/* ---------------- Rendu : Joueurs ---------------- */
+function renderJoueurs() {
+  const n = S.period, dev = mergeMaps("dev", n), cc = mergeMaps("cc", n), j = periodSum("j", n), pg = periodSum("pg", n);
+  const dt = sum(Object.values(dev)), ct = sum(Object.values(cc));
+  $("#plKpis").innerHTML = [
+    { lab: "Sur téléphone ou tablette", val: dt ? pct(((dev.mobile || 0) + (dev.tablet || 0)) / dt, 0) : "–" },
+    { lab: "Sur ordinateur", val: dt ? pct((dev.pc || 0) / dt, 0) : "–" },
+    { lab: "Abonnés Premium", val: j ? pct(pg / j, 0) : "–", hint: "ils te rapportent des Robux Premium Payouts" },
+    { lab: "Pays différents", val: fmt(Object.keys(cc).filter(c => c !== "??").length) },
+  ].map(tile).join("");
+  hbars($("#devBars"), Object.entries(dev).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: DEV[k] || k, v, label: pct(v / dt, 0), tip: `${DEV[k] || k}<br><b>${fmt(v)}</b> joueurs` })));
+  hbars($("#ccBars"), Object.entries(cc).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => ({ name: countryName(k), html: `${flag(k)} ${esc(countryName(k))}`, v, label: pct(v / ct, 0), tip: `${esc(countryName(k))}<br><b>${fmt(v)}</b> arrivées` })));
+}
+
+/* ---------------- Rendu : Événements ---------------- */
+function renderEvenements() {
+  const n = S.period, ev = mergeNested("ev", n), u = periodSum("u", n);
+  const list = Object.entries(ev).sort((a, b) => b[1].c - a[1].c);
+  if (!S.evSel || !ev[S.evSel]) S.evSel = list.length ? list[0][0] : null;
+  $("#evBody").innerHTML = list.length ? list.map(([k, v]) => `<tr data-ev="${esc(k)}" style="cursor:pointer${k === S.evSel ? ";background:var(--accent-soft)" : ""}"><td><code>${esc(k)}</code></td><td class="n">${fmt(v.c)}</td><td class="n">${u ? fmt1(v.c / u) : "–"}</td><td class="n">${fmt(v.v)}</td><td class="n">${v.c ? fmt1(v.v / v.c) : "–"}</td></tr>`).join("")
+    : `<tr><td colspan="5" class="empty">Aucun événement perso pour l'instant. Regarde l'onglet « Connecter mon jeu » pour en envoyer.</td></tr>`;
+  $$("#evBody tr[data-ev]").forEach(tr => tr.addEventListener("click", () => { S.evSel = tr.dataset.ev; renderEvenements(); }));
+  $("#evTitle").textContent = S.evSel ? `« ${S.evSel} » par jour` : "Par jour";
+  barChart($("#chEv"), { pts: dayPts(n, k => (((D.d[k] || {}).ev || {})[S.evSel] || {}).c || 0), empty: "Choisis un événement dans le tableau." });
+  // Entonnoir
+  const names = list.map(x => x[0]);
+  if (!S.funnel) {
+    const groups = {};
+    names.forEach(nm => { const m = nm.match(/^(.*?)[_-]?(\d+)$/); if (m) (groups[m[1]] = groups[m[1]] || []).push([+m[2], nm]); });
+    const best = Object.values(groups).sort((a, b) => b.length - a.length)[0];
+    S.funnel = best && best.length >= 2 ? best.sort((a, b) => a[0] - b[0]).slice(0, 5).map(x => x[1]) : names.slice(0, 3);
+  }
+  const ctl = $("#funnelCtl");
+  ctl.innerHTML = [0, 1, 2, 3, 4].map(i => `<label>Étape ${i + 1}<select data-i="${i}"><option value="">—</option>${names.map(nm => `<option${S.funnel[i] === nm ? " selected" : ""}>${esc(nm)}</option>`).join("")}</select></label>`).join("");
+  ctl.querySelectorAll("select").forEach(s => s.addEventListener("change", () => { S.funnel[+s.dataset.i] = s.value; renderEvenements(); }));
+  const steps = S.funnel.filter(Boolean).map(nm => ({ nm, c: (ev[nm] || {}).c || 0 }));
+  const first = steps.length ? steps[0].c : 0;
+  $("#funnel").innerHTML = steps.length && first ? steps.map((s, i) => {
+    const r = s.c / first, drop = i ? 1 - s.c / Math.max(1, steps[i - 1].c) : 0;
+    return `<div class="fstep"><code style="overflow:hidden;text-overflow:ellipsis">${esc(s.nm)}</code><span class="track"><i style="width:${Math.min(100, r * 100).toFixed(1)}%"></i></span><span class="n" style="font-family:var(--mono);font-size:12px;text-align:right">${pct(r, 0)}${i ? ` <span class="${drop > .5 ? "down" : "flat"}">−${pct(drop, 0)}</span>` : ""}</span></div>`;
+  }).join("") : `<div class="empty">Choisis au moins deux étapes.</div>`;
+}
+
+/* ---------------- Rendu : Page du jeu ---------------- */
+function renderJeu() {
+  const n = S.period, U = D.uni || {};
+  const byDay = {};
+  for (const [k, v] of Object.entries(D.uniH || {}).sort()) byDay[k.slice(0, 8)] = v;
+  const ks = dayKeys(n + 1);
+  const gain = f => ks.slice(1).map((k, i) => { const a = byDay[ks[i]], b = byDay[k]; return { t: pk(k), y: a && b && isNum(a[f]) && isNum(b[f]) ? Math.max(0, b[f] - a[f]) : 0, cur: k === todayK() }; });
+  const votes = (U.up || 0) + (U.down || 0);
+  const vis = gain("v");
+  $("#uniKpis").innerHTML = [
+    { lab: "Visites au total", val: fmtC(U.visits), hint: vis.length ? "+" + fmt(sum(vis.map(p => p.y))) + ` sur ${n} jours` : "" },
+    { lab: "En train de jouer (selon Roblox)", val: fmt(U.playing), hint: U.t ? "relevé " + ago(U.t) : "" },
+    { lab: "Favoris", val: fmtC(U.fav), hint: U.visits ? pct(U.fav / U.visits, 2) + " des visites" : "" },
+    { lab: "Taux de likes", val: votes ? pct(U.up / votes, 0) : "–", hint: votes ? `${fmt(U.up)} 👍 · ${fmt(U.down)} 👎` : "" },
+  ].map(tile).join("");
+  barChart($("#chVisits"), { pts: vis, empty: "Il faut au moins 2 jours de relevés." });
+  barChart($("#chFav"), { pts: gain("f"), empty: "Il faut au moins 2 jours de relevés." });
+  lineChart($("#chLike"), { pts: ks.map(k => { const b = byDay[k]; const v = b && (b.up || 0) + (b.dn || 0); return { t: pk(k), y: v ? b.up / v * 100 : null }; }), fmtY: v => fmt(v) + " %", area: false, tip: p => `${fmtDayLong(p.t)}<br><b>${fmt1(p.y)} %</b> de likes` });
+}
+
+/* ---------------- Rendu : Connecter ---------------- */
+function scriptFor(url, secret) {
+  let s = LUA_SERVER;
+  if (url) s = s.replace("https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app", url.replace(/\/+$/, ""));
+  if (secret) s = s.replace("COLLE_TON_SECRET_ICI", secret);
+  return s;
+}
+async function runChecks() {
+  const out = []; const c = S.conn = { saved: !isDemo() };
+  if (!isDemo()) {
+    try { await fb("", { shallow: "true" }); c.reach = true; } catch (e) { c.reach = false; c.err = e; }
+    if (c.reach) { try { c.ping = await fb("ping"); } catch (e) { } }
+  }
+  renderConnect();
+}
+function renderConnect() {
+  if (document.activeElement !== $("#cfgUrl")) $("#cfgUrl").value = (cfg && cfg.url) || "";
+  if (document.activeElement !== $("#cfgSecret")) $("#cfgSecret").value = (cfg && cfg.secret) || "";
+  $("#codeServer").value = scriptFor(cfg && cfg.url, cfg && cfg.secret);
+  $("#codeClient").value = LUA_CLIENT;
+  $("#codeHint").textContent = isDemo() ? "Enregistre ton adresse et ton secret à gauche : ils seront remplis automatiquement dans ce script." : "Ton adresse et ton secret sont déjà remplis dedans.";
+  const c = S.conn || {}, srv = liveServers(), ping = c.ping || D.ping;
+  const lastAny = Math.max(0, ...Object.values(D.live || {}).map(v => v && v.t || 0));
+  const row = (state, txt) => `<div class="check ${state}"><span class="s">${state === "ok" ? "✓" : state === "ko" ? "✕" : "…"}</span><span>${txt}</span></div>`;
+  const reachTxt = c.reach ? "Base Firebase joignable" : c.err ? (c.err.status === 401 ? "Secret refusé par Firebase" : c.err.status === 404 ? "Adresse de base introuvable" : "Base injoignable d'ici (si tu es sur claude.ai, ouvre la version hébergée)") : "Base Firebase joignable";
+  $("#checks").innerHTML = isDemo() ? row("", "Pas encore connecté — tu vois des données de démo.") + row("", "Suis les étapes à gauche, ça prend 10 minutes.") :
+    [row("ok", "Adresse et secret enregistrés dans ce navigateur"),
+     row(c.reach ? "ok" : c.err ? "ko" : "", reachTxt),
+     row(ping && ping.t ? "ok" : "", ping && ping.t ? `Test depuis Studio reçu ${ago(ping.t)}` : "Test depuis Studio : lance ton jeu dans Studio avec le script"),
+     row(srv.length ? "ok" : "", srv.length ? `${srv.length} serveur(s) en ligne envoient leurs données` : lastAny ? `Dernières données d'un serveur reçues ${ago(lastAny)}` : "Aucun serveur publié n'a encore envoyé de données"),
+    ].join("");
+  $("#st1").classList.toggle("done", !isDemo()); $("#st2").classList.toggle("done", !isDemo()); $("#st3").classList.toggle("done", !!c.reach);
+  $("#st4").classList.toggle("done", !isDemo() && !!(srv.length || lastAny || (ping && ping.t)));
+}
+
+/* ---------------- Navigation ---------------- */
+const VIEWS = { direct: renderDirect, audience: renderAudience, engagement: renderEngagement, retention: renderRetention, monetisation: renderMonetisation, joueurs: renderJoueurs, evenements: renderEvenements, jeu: renderJeu, connecter: renderConnect };
+function render() {
+  renderHeader();
+  try { VIEWS[S.view](); } catch (e) { console.error(e); }
+}
+function route() {
+  const h = location.hash.replace("#", "");
+  S.view = VIEWS[h] ? h : "direct";
+  $$("section.view").forEach(s => s.classList.toggle("on", s.id === "v-" + S.view));
+  $$("#tabs a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + S.view ? "page" : "false"));
+  if (S.view === "connecter") runChecks();
+  render();
+}
+window.addEventListener("hashchange", route);
+document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) location.hash = g.dataset.go; });
+
+// Sélecteur de période
+$$(".period").forEach(el => {
+  el.innerHTML = [7, 30, 90].map(p => `<button data-p="${p}" aria-pressed="${p === S.period}">${p} j</button>`).join("");
+  el.addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b) return; S.period = +b.dataset.p; $$(".period button").forEach(x => x.setAttribute("aria-pressed", +x.dataset.p === S.period)); render(); });
+});
+$("#plSearch").addEventListener("input", e => { S.plSearch = e.target.value; renderDirect(); });
+$("#refreshBtn").addEventListener("click", () => refresh(3));
+$("#recheck").addEventListener("click", runChecks);
+$("#saveCfg").addEventListener("click", async () => {
+  let url = $("#cfgUrl").value.trim().replace(/\/+$/, "").replace(/\.json$/, ""), secret = $("#cfgSecret").value.trim();
+  const out = $("#testOut");
+  if (!/^https:\/\/[^/]+\.(firebasedatabase\.app|firebaseio\.com)$/.test(url)) { out.innerHTML = `<div class="check ko"><span class="s">✕</span><span>L'adresse doit ressembler à <code>https://ton-projet-default-rtdb.europe-west1.firebasedatabase.app</code></span></div>`; return; }
+  if (!secret) { out.innerHTML = `<div class="check ko"><span class="s">✕</span><span>Colle aussi ton secret.</span></div>`; return; }
+  cfg = { url, secret }; saveCfg(cfg);
+  out.innerHTML = `<div class="check"><span class="s">…</span><span>Test en cours…</span></div>`;
+  Object.assign(D, { live: {}, m: {}, h: {}, d: {}, c: {}, uni: {}, uniH: {}, f: {}, names: {}, ping: null });
+  S.seenFeed.clear(); S.firstFeed = true; S.lastOk = 0;
+  await runChecks();
+  const c = S.conn || {};
+  out.innerHTML = c.reach ? `<div class="check ok"><span class="s">✓</span><span>Connecté ! Copie maintenant le script serveur à droite (ton adresse et ton secret sont dedans).</span></div>` : `<div class="check ko"><span class="s">✕</span><span>${c.err && c.err.status === 401 ? "Secret refusé." : c.err && c.err.status === 404 ? "Adresse introuvable." : "Impossible de joindre la base depuis cette page."}</span></div>`;
+  refresh(3);
+});
+$("#demoBtn").addEventListener("click", () => { cfg = null; saveCfg(null); S.conn = null; S.seenFeed.clear(); S.firstFeed = true; $("#testOut").innerHTML = ""; refresh(3); renderConnect(); });
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-copy]"); if (!b) return;
+  const ta = document.getElementById(b.dataset.copy); let ok = false;
+  try { await navigator.clipboard.writeText(ta.value); ok = true; } catch (err) { try { ta.select(); ok = document.execCommand("copy"); } catch (e2) { } }
+  const old = b.textContent; b.textContent = ok ? "Copié ✓" : "Sélectionne et copie"; if (!ok) ta.select();
+  setTimeout(() => b.textContent = old, 1800);
+});
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 150); });
+
+/* ============================================================
+   MODE DÉMO — base fictive au même format que la vraie
+   ============================================================ */
+const DEMO = (() => {
+  let seed = 42; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pick = a => a[Math.floor(rnd() * a.length)];
+  const A = ["Pixel", "Turbo", "Neo", "Shadow", "Frost", "Lava", "Cosmic", "Ninja", "Sky", "Mega", "Lucky", "Crazy", "Hyper", "Mini", "Golden"];
+  const B = ["Fox", "Wolf", "Cat", "Dragon", "Bean", "Toast", "Gamer", "Panda", "Rider", "Blox", "Noob", "King", "Bunny", "Shark", "Owl"];
+  const uname = () => pick(A) + pick(B) + (rnd() < .6 ? Math.floor(rnd() * 999) : "");
+  const CC = [["FR", 22], ["US", 18], ["BE", 9], ["BR", 9], ["GB", 6], ["DE", 5], ["CA", 5], ["PH", 5], ["MX", 4], ["ES", 4], ["NL", 3], ["IT", 3], ["PL", 2], ["MA", 2], ["CH", 1]];
+  const DV = [["mobile", 52], ["pc", 30], ["tablet", 10], ["console", 7], ["vr", 1]];
+  const wpick = arr => { const t = sum(arr.map(x => x[1])); let r = rnd() * t; for (const [k, w] of arr) { if ((r -= w) <= 0) return k; } return arr[0][0]; };
+  const PROD = [["pass_101", "VIP", 199, .9], ["pass_102", "Double saut", 75, 1.6], ["prod_201", "Passer une étape", 15, 6], ["prod_202", "Pack 500 pièces", 49, 2.2], ["pass_103", "Trail arc-en-ciel", 99, .8], ["prod_203", "Revivre", 10, 3.5]];
+  const EV = [["etape_10", 1, .9], ["etape_25", 1, .55], ["etape_50", 1, .3], ["etape_75", 1, .17], ["fin_obby", 1, .09], ["mort", 1, 7.5], ["pieces_gagnees", 35, 3.2], ["code_utilise", 1, .12]];
+  const db = { live: {}, m: {}, h: {}, d: {}, c: {}, uni: { now: {}, h: {} }, f: {}, names: {}, ping: null };
+  PROD.forEach(p => db.names[p[0]] = p[1]);
+  const T = Date.now(), tz = new Date().getTimezoneOffset() * 60e3;
+  // courbe de joueurs connectés : croissance + rythme de la journée + week-end
+  const growth = t => { const d = (T - t) / DAY; return 160 / (1 + Math.exp((d - 55) / 12)) + 18 + (d < 9 ? (9 - d) * 6 : 0); };
+  const hourF = t => { const lh = new Date(t).getHours() + new Date(t).getMinutes() / 60; return .28 + .72 * Math.pow(Math.max(0, Math.sin((lh - 7) / 24 * Math.PI * 2 - .55) * .5 + .5), 1.6) + (lh >= 13 && lh < 17 ? .1 : 0); };
+  const wkF = t => { const d = new Date(t).getDay(); return d === 0 || d === 6 ? 1.35 : d === 3 ? 1.12 : 1; };
+  const ccuAt = t => Math.max(0, growth(t) * hourF(t) * wkF(t) * (0.93 + .14 * Math.sin(t / 7e5) * Math.cos(t / 3.1e6)));
+  // minutes (49 h)
+  for (let t = Math.floor((T - 49 * HOUR) / 60e3) * 60e3; t <= T; t += 60e3) db.m[kM(t)] = { demo: Math.round(ccuAt(t)) };
+  // heures (36 j)
+  for (let t = Math.floor((T - 36 * DAY) / HOUR) * HOUR; t <= T; t += HOUR) { const c = ccuAt(t + HOUR / 2), cov = Math.min(3600, (T - t) / 1000); db.h[kH(t)] = { demo: { pk: Math.round(c * 1.12), s: c * cov / 15, n: Math.round(cov / 15), fs: 15 } }; }
+  // jours (185 j) + cohortes
+  const t0 = Date.UTC(new Date(T).getUTCFullYear(), new Date(T).getUTCMonth(), new Date(T).getUTCDate());
+  let visits = 1184000, fav = 9100, up = 4120, dn = 690;
+  for (let i = 184; i >= 0; i--) {
+    const t = t0 - i * DAY, frac = i === 0 ? Math.max(.02, (T - t0) / DAY) : 1;
+    let avg = 0; for (let h = 0; h < 24; h++) avg += ccuAt(t + h * HOUR + HOUR / 2) / 24;
+    const sessMin = 13 + 4 * Math.sin(i / 9) + (i < 20 ? 3 : 0), u = Math.round(avg * 1440 / sessMin * .78 * frac * (0.95 + rnd() * .1));
+    const j = Math.round(u * 1.38), nu = Math.round(u * (.36 + .06 * Math.sin(i / 5))), pt = Math.round(j * sessMin * 60);
+    const arp = 1.6 + .5 * Math.sin(i / 11) + (i < 14 ? .5 : 0), rb = Math.round(u * arp), pu = Math.round(rb / 52), py = Math.round(pu * .62);
+    const row = { j, u, nu, ss: Math.round(j * .97), pt, rb, pu, py, pg: Math.round(j * .11), srv: Math.ceil(avg / 8), dev: {}, cc: {}, sb: {}, ev: {}, pr: {} };
+    DV.forEach(([k, w]) => row.dev[k] = Math.round(u * w / 100 * (0.9 + rnd() * .2)));
+    CC.forEach(([k, w]) => row.cc[k] = Math.round(j * w / 100 * (0.85 + rnd() * .3)));
+    [["a_lt1", 11], ["b_1_5", 24], ["c_5_15", 27], ["d_15_30", 18], ["e_30_60", 12], ["f_60p", 8]].forEach(([k, w]) => row.sb[k] = Math.round(row.ss * w / 100 * (0.9 + rnd() * .2)));
+    EV.forEach(([k, v, r]) => { const c = Math.round(u * r * (0.9 + rnd() * .2)); row.ev[k] = { c, v: Math.round(c * v * (0.8 + rnd() * .4)) }; });
+    let left = rb; PROD.forEach(([k, , price, w], idx) => { const c = Math.max(0, Math.round(pu * w / 15 * (0.7 + rnd() * .6))); row.pr[k] = { c, r: c * price }; });
+    const prT = sum(Object.values(row.pr).map(x => x.r)); row.rb = prT; row.pu = sum(Object.values(row.pr).map(x => x.c));
+    db.d[kD(t)] = row;
+    const age = i, coh = { n: nu };
+    [[1, .27], [3, .16], [7, .095], [14, .062], [30, .034]].forEach(([d, r]) => { if (age >= d + 1) coh["d" + d] = Math.round(nu * r * (0.82 + rnd() * .36) * (age < 25 ? 1.12 : 1)); });
+    if (i < 100) db.c[kD(t)] = coh;
+    for (let h = 0; h < 24; h++) {
+      const ht = t + h * HOUR; if (ht > T) break;
+      const f = 1 / 24 * frac; visits += Math.round(j / 24); fav += Math.round(j * .009 / 24 + rnd()); up += Math.round(j * .0042 / 24 + rnd() * .6); dn += Math.round(j * .0006 / 24 + rnd() * .3);
+      db.uni.h[kH(ht)] = { v: visits, f: fav, up, dn };
+    }
+  }
+  db.uni.now = { name: "Obby des Nuages", visits, playing: 0, fav, up, down: dn, t: T };
+  // serveurs en direct
+  const srvN = Math.max(2, Math.ceil(ccuAt(T) / 14));
+  const makePlayer = (t, isNew) => ({ n: uname(), d: "", dev: wpick(DV), cc: wpick(CC), pr: rnd() < .11, nw: isNew ?? rnd() < .35, j: Math.round(t / 1000 - Math.pow(rnd(), 1.8) * 4200), pi: Math.round(40 + rnd() * 140) });
+  for (let s = 0; s < srvN; s++) {
+    const id = Array.from({ length: 20 }, () => "abcdef0123456789"[Math.floor(rnd() * 16)]).join("");
+    db.live[id] = { p: 0, max: 16, fps: 58 + Math.round(rnd() * 2), ping: 0, mem: 900 + Math.round(rnd() * 500), ver: 214, up: Math.round(T / 1000 - rnd() * 20000), priv: s === srvN - 1 && srvN > 3, pl: {}, t: T };
+  }
+  const servers = Object.values(db.live);
+  const target = Math.round(ccuAt(T));
+  for (let i = 0; i < target; i++) { const s = servers[i % servers.length]; if (Object.keys(s.pl).length < s.max) s.pl[String(1e8 + Math.floor(rnd() * 9e8))] = makePlayer(T); }
+  const sync = t => servers.forEach(s => { const ps = Object.values(s.pl); s.p = ps.length; s.ping = ps.length ? Math.round(sum(ps.map(p => p.pi)) / ps.length) : 0; s.t = t; s.fps = Math.max(30, Math.min(60, 60 - Math.round(rnd() * 3) - (s.p > 14 ? 4 : 0))); });
+  sync(T);
+  let fc = 0;
+  const feedAdd = (t, k, p, x) => { fc++; db.f[pad(Math.round(t), 13) + "_demo_" + pad(fc, 4)] = { k, n: p.n, d: p.d, x, t: Math.round(t) }; };
+  for (let i = 40; i > 0; i--) {
+    const t = T - i * 20e3 * (0.6 + rnd()), p = makePlayer(t), r = rnd();
+    if (r < .38) feedAdd(t, "join", p, { new: p.nw, cc: p.cc });
+    else if (r < .7) feedAdd(t, "leave", p, { dur: Math.round(60 + rnd() * 1800) });
+    else if (r < .82) { const pr = pick(PROD); feedAdd(t, "buy", p, { item: pr[1], r: pr[2], kind: pr[0].slice(0, 4) }); }
+    else feedAdd(t, "event", p, { e: pick(EV.slice(0, 5))[0], v: 1 });
+  }
+  db.uni.now.playing = target;
+  // tic : le direct bouge toutes les 3 secondes
+  function tick() {
+    const t = Date.now(), tk = kD(t), row = db.d[tk];
+    const want = Math.round(ccuAt(t) + (rnd() - .5) * 3);
+    let cur = sum(servers.map(s => Object.keys(s.pl).length));
+    const ops = 1 + Math.floor(rnd() * 3);
+    for (let i = 0; i < ops; i++) {
+      if (cur < want || (rnd() < .4 && cur === want)) {
+        const s = servers.filter(x => Object.keys(x.pl).length < x.max).sort((a, b) => Object.keys(a.pl).length - Object.keys(b.pl).length)[0];
+        if (!s) break; const p = makePlayer(t); p.j = Math.round(t / 1000); s.pl[String(1e8 + Math.floor(rnd() * 9e8))] = p; cur++;
+        feedAdd(t, "join", p, { new: p.nw, cc: p.cc });
+        if (row) { row.j++; row.u += rnd() < .7 ? 1 : 0; if (p.nw) { row.nu++; db.c[tk] && db.c[tk].n++; } row.dev[p.dev] = (row.dev[p.dev] || 0) + 1; row.cc[p.cc] = (row.cc[p.cc] || 0) + 1; }
+      } else if (cur > 0) {
+        const s = pick(servers.filter(x => Object.keys(x.pl).length)); const ks = Object.keys(s.pl), k = pick(ks), p = s.pl[k]; delete s.pl[k]; cur--;
+        const d = Math.max(20, Math.round(t / 1000 - p.j)); feedAdd(t, "leave", p, { dur: d });
+        if (row) { row.ss++; row.pt += d; }
+      }
+    }
+    if (rnd() < .18) { const s = pick(servers); const ks = Object.keys(s.pl); if (ks.length) { const p = s.pl[pick(ks)], pr = pick(PROD); feedAdd(t, "buy", p, { item: pr[1], r: pr[2], kind: pr[0].slice(0, 4) }); if (row) { row.rb += pr[2]; row.pu++; row.pr[pr[0]] = row.pr[pr[0]] || { c: 0, r: 0 }; row.pr[pr[0]].c++; row.pr[pr[0]].r += pr[2]; } } }
+    if (rnd() < .3) { const s = pick(servers); const ks = Object.keys(s.pl); if (ks.length) { const e = pick(EV.slice(0, 5)); feedAdd(t, "event", s.pl[pick(ks)], { e: e[0], v: 1 }); if (row && row.ev[e[0]]) row.ev[e[0]].c++; } }
+    servers.forEach(s => Object.values(s.pl).forEach(p => p.pi = Math.max(25, Math.min(300, p.pi + Math.round((rnd() - .5) * 20)))));
+    sync(t);
+    db.m[kM(t)] = { demo: cur };
+    const fk = Object.keys(db.f).sort(); while (fk.length > 120) delete db.f[fk.shift()];
+    db.uni.now.playing = cur;
+  }
+  return { db, tick, name: "Obby des Nuages" };
+})();
+
+/* ---------------- Démarrage ---------------- */
+route();
+refresh(3);
+let n5 = 0;
+setInterval(() => {
+  n5++;
+  if (isDemo()) DEMO.tick();
+  if (document.hidden) return;
+  refresh(n5 % 20 === 0 ? 3 : n5 % 6 === 0 ? 2 : 1);
+}, 4000);
+
+</script>
+</body>
+</html>
