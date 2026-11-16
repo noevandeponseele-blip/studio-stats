@@ -7,8 +7,8 @@
 
 	Avant de publier :
 	  1. Game Settings > Security > "Allow HTTP Requests" = ON
-	  2. Colle ton adresse Firebase (et ton secret si tu en as un) ci-dessous
-	     (le site les remplit pour toi dans l'onglet "Connecter mon jeu")
+	  2. Le site remplit l'adresse, la clé API et l'email pour toi (page "Connecter mon jeu").
+	     Tu ajoutes seulement le mot de passe du compte.
 
 	──────────── Ce que tu peux envoyer toi-même ────────────
 	Depuis n'importe quel autre Script serveur :
@@ -26,13 +26,16 @@
 	SS:WaitForChild("TrackEconomy"):Fire(player, "source", "Pieces", 50, "quete")
 	SS:WaitForChild("TrackEconomy"):Fire(player, "sink", "Pieces", 200, "epee")
 
-	Ce script ne s'exécute que sur le serveur : ton secret / ta clé ne
-	sont jamais envoyés aux joueurs.
+	Ce script ne s'exécute que sur le serveur : le mot de passe n'est jamais
+	envoyé aux joueurs. Attention : les personnes qui ont le droit de modifier
+	ton jeu dans Studio peuvent le lire.
 ]]
 
 local CONFIG = {
-	FIREBASE_URL = "https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app",
-	SECRET = "COLLE_TON_SECRET_ICI",  -- laisse "" si tu utilises une clé (déjà dans l'adresse)
+	FIREBASE_URL = "https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app/mon-jeu",
+	API_KEY = "COLLE_TA_CLE_API_WEB",     -- Paramètres du projet > Général > Clé API Web
+	EMAIL = "COLLE_L_EMAIL_DU_COMPTE",      -- le compte créé dans Authentication
+	PASSWORD = "COLLE_LE_MOT_DE_PASSE",     -- reste sur le serveur, jamais envoyé aux joueurs
 	FLUSH_SECONDS = 15,         -- fréquence d'envoi
 	UNIVERSE_SECONDS = 300,     -- relevé visites / favoris / likes / icône
 	STUDIO_SENDS_STATS = false, -- false : Studio envoie juste un test de connexion
@@ -49,7 +52,54 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local BASE = string.gsub(CONFIG.FIREBASE_URL, "/+$", "")
-local AUTH = (CONFIG.SECRET ~= "" and CONFIG.SECRET ~= "COLLE_TON_SECRET_ICI") and ("?auth=" .. CONFIG.SECRET) or ""
+local USE_AUTH = CONFIG.EMAIL ~= "" and not string.find(CONFIG.EMAIL, "^COLLE_")
+
+------------------------------------------------------------------------
+-- Connexion sécurisée (Firebase Authentication) : jeton valable 1 h, renouvelé tout seul
+------------------------------------------------------------------------
+local idToken, refreshToken, tokenExpires = nil, nil, 0
+
+local function authCall(url, body, contentType)
+	local ok, res = pcall(function()
+		return HttpService:RequestAsync({ Url = url, Method = "POST", Headers = { ["Content-Type"] = contentType }, Body = body })
+	end)
+	if not ok or not res.Success then
+		warn("[Studio Stats] Connexion au compte impossible : " .. tostring(ok and res.Body or res))
+		return nil
+	end
+	local okD, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+	return okD and data or nil
+end
+
+local function signIn()
+	local data = authCall("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" .. CONFIG.API_KEY,
+		HttpService:JSONEncode({ email = CONFIG.EMAIL, password = CONFIG.PASSWORD, returnSecureToken = true }), "application/json")
+	if data and data.idToken then
+		idToken, refreshToken = data.idToken, data.refreshToken
+		tokenExpires = os.time() + (tonumber(data.expiresIn) or 3600) - 300
+		return true
+	end
+	return false
+end
+
+local function renew()
+	local data = authCall("https://securetoken.googleapis.com/v1/token?key=" .. CONFIG.API_KEY,
+		"grant_type=refresh_token&refresh_token=" .. HttpService:UrlEncode(refreshToken), "application/x-www-form-urlencoded")
+	if data and data.id_token then
+		idToken, refreshToken = data.id_token, data.refresh_token
+		tokenExpires = os.time() + (tonumber(data.expires_in) or 3600) - 300
+		return true
+	end
+	return false
+end
+
+local function authParam()
+	if not USE_AUTH then return nil end
+	if not idToken or os.time() >= tokenExpires then
+		if not (refreshToken and renew()) then signIn() end
+	end
+	return idToken and ("auth=" .. idToken) or nil
+end
 local NULL = "__NULL__" -- remplacé par null dans le JSON (= suppression)
 local IS_STUDIO = RunService:IsStudio()
 local JOB = game.JobId ~= "" and game.JobId or ("studio-" .. HttpService:GenerateGUID(false))
@@ -76,14 +126,15 @@ local function safeKey(s)
 end
 
 local function withAuth(url, extra)
-	if extra then
-		if AUTH ~= "" then return url .. AUTH .. "&" .. extra end
-		return url .. "?" .. extra
-	end
-	return url .. AUTH
+	local a = authParam()
+	local q = {}
+	if a then table.insert(q, a) end
+	if extra then table.insert(q, extra) end
+	if #q == 0 then return url end
+	return url .. "?" .. table.concat(q, "&")
 end
 
-local function request(method, path, body, extra)
+local function request(method, path, body, extra, retried)
 	local url = withAuth(BASE .. "/" .. path .. ".json", extra)
 	local ok, res = pcall(function()
 		return HttpService:RequestAsync({
@@ -98,6 +149,10 @@ local function request(method, path, body, extra)
 		return false, nil
 	end
 	if not res.Success then
+		if (res.StatusCode == 401 or res.StatusCode == 403) and USE_AUTH and not retried then
+			idToken = nil -- jeton expiré ou refusé : on se reconnecte une fois
+			return request(method, path, body, extra, true)
+		end
 		warn("[Studio Stats] Firebase a répondu " .. tostring(res.StatusCode) .. " : " .. tostring(res.Body))
 		return false, nil
 	end
@@ -115,7 +170,7 @@ if IS_STUDIO and not CONFIG.STUDIO_SENDS_STATS then
 		if ok then
 			print("[Studio Stats] ✅ Connexion à Firebase OK ! Regarde l'onglet « Connecter mon jeu » du site.")
 		else
-			warn("[Studio Stats] ❌ Connexion impossible. Vérifie l'adresse, la clé / le secret, les règles et « Allow HTTP Requests ».")
+			warn("[Studio Stats] ❌ Connexion impossible. Vérifie l'adresse, la clé API, l'email / mot de passe, les règles et « Allow HTTP Requests ».")
 		end
 	end)
 	-- Les BindableEvents existent quand même, pour que tes scripts ne plantent pas en Studio
