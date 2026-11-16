@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5ybeq4hW7ZwVdhByZCVXksKdBOOZUkPbfbDG28cRkXQ='; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://*.rbxcdn.com; connect-src https://*.firebasedatabase.app https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-E5W2jS0wK96uacNe+puBF6ZgfdTUT1OreKADopkslY4='; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://*.rbxcdn.com; connect-src https://*.firebasedatabase.app https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#141110">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -73,8 +73,8 @@ nav.menu a .cnt{margin-left:auto;font-size:11px;font-weight:700;background:var(-
 .main{min-width:0;display:flex;flex-direction:column}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px max(32px,calc((100% - var(--cw)) / 2 + 32px));background:rgba(20,17,16,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .burger{display:none;background:var(--card);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;place-items:center;cursor:pointer}
-.pillsel{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 4px;height:40px}
-.pillsel select{all:unset;cursor:pointer;font-weight:700;padding:0 26px 0 12px;height:40px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8998f' fill='none' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 8px center}
+.pillsel{display:inline-flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0;height:40px;box-sizing:border-box}
+.pillsel select{all:unset;box-sizing:border-box;display:block;cursor:pointer;font-weight:700;padding:0 30px 0 14px;height:38px;line-height:38px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8998f' fill='none' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 8px center}
 .pillsel select option{background:var(--card)}
 .navarrows{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:12px;height:40px;overflow:hidden}
 .navarrows button{background:none;border:0;width:38px;cursor:pointer;color:var(--muted);font-size:16px}
@@ -1815,7 +1815,8 @@ function startBanner() {
 }
 function renderChrome() {
   const U = D.uni || {}, g = game();
-  const name = isDemo() ? DEMO.name : (U.name || (g && g.name) || "Mon jeu");
+  const robloxName = U.name && !/^\[.*\]$/.test(U.name) ? U.name : null; // Roblox renvoie « [TITLE UNAVAILABLE] » pour un jeu privé
+  const name = isDemo() ? DEMO.name : (robloxName || (g && g.name) || "Mon jeu");
   $("#gName").textContent = name; document.title = name + " — Studio Stats";
   const iconOk = typeof U.icon === "string" && /^https:\/\/[a-z0-9.-]+\.rbxcdn\.com\//i.test(U.icon);
   $("#gIcon").innerHTML = iconOk ? `<img src="${esc(U.icon)}" alt="" referrerpolicy="no-referrer">` : (isDemo() ? DEMO.icon : "🎮");
