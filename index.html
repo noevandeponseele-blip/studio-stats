@@ -20,13 +20,14 @@
   --blue:#3f7ff0; --blue2:#6aa2ff; --blue3:#a9c9ff; --purple:#a462f0; --orange:#f26a2e; --orange2:#ff9a62;
   --green:#42c486; --red:#f0605a; --yellow:#e8b44c;
   --c1:#1d2a45; --c2:#23407a; --c3:#2f5fb8; --c4:#4c86ec; --c5:#8fbaff;
-  --r:16px; --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --r:16px; --cw:1720px; --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{margin:0;background:var(--bg)}
-body{color:var(--ink);font:14px/1.5 var(--font);font-feature-settings:"tnum" 1,"cv11" 1;-webkit-font-smoothing:antialiased}
+html{background:var(--bg)}
+body{margin:0}
+body{background:radial-gradient(1400px 700px at 75% -15%,rgba(242,106,46,.07),transparent 60%),radial-gradient(1100px 600px at 10% 110%,rgba(63,127,240,.06),transparent 60%),var(--bg);background-attachment:fixed;color:var(--ink);font:14px/1.5 var(--font);font-feature-settings:"tnum" 1,"cv11" 1;-webkit-font-smoothing:antialiased}
 a{color:var(--blue2)}
 button{font:inherit;color:inherit}
 h1,h2,h3{margin:0;line-height:1.15;letter-spacing:-.02em}
@@ -68,7 +69,7 @@ nav.menu a .cnt{margin-left:auto;font-size:11px;font-weight:700;background:var(-
 .sidefoot{margin-top:auto;font-size:12px;color:var(--dim);padding:0 8px}
 
 .main{min-width:0;display:flex;flex-direction:column}
-.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 28px;background:rgba(20,17,16,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px max(32px,calc((100% - var(--cw)) / 2 + 32px));background:rgba(20,17,16,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);flex-wrap:wrap}
 .burger{display:none;background:var(--card);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;place-items:center;cursor:pointer}
 .pillsel{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 4px;height:40px}
 .pillsel select{all:unset;cursor:pointer;font-weight:700;padding:0 26px 0 12px;height:40px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8998f' fill='none' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 8px center}
@@ -83,7 +84,8 @@ nav.menu a .cnt{margin-left:auto;font-size:11px;font-weight:700;background:var(-
 .status{display:inline-flex;align-items:center;font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:12px;height:40px;padding:0 12px;white-space:nowrap}
 .iconbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;height:40px;min-width:40px;padding:0 12px;cursor:pointer;color:var(--muted);font-weight:600}
 .iconbtn:hover{color:var(--ink);border-color:var(--line2)}
-.content{padding:26px 28px 70px;max-width:1500px;width:100%}
+.content{padding:26px 32px 70px;max-width:var(--cw);width:100%;margin:0 auto}
+@media (min-width:2000px){:root{--cw:1960px}.kpi .val{font-size:40px}}
 .demo-banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:linear-gradient(90deg,rgba(242,106,46,.16),rgba(242,106,46,.05));border:1px solid rgba(242,106,46,.35);border-radius:14px;padding:11px 16px;margin-bottom:20px;font-size:13.5px}
 .demo-banner b{color:var(--orange2)}
 .err-banner{background:rgba(240,96,90,.1);border-color:rgba(240,96,90,.4)}
@@ -105,7 +107,9 @@ section.page.on{display:grid;gap:18px}
 .c3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .c21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .c12{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:grid;gap:14px;align-content:start}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,0) 120px),var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.18)}
+.card > .chart,.card > .tbl,.card > [id]:not(.kpi):last-child{flex:1 1 auto}
+.card > .chart{display:flex;flex-direction:column;justify-content:center;min-height:120px}
 .card.flush{padding:0;overflow:hidden}
 .ch{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .ch .meta{font-size:13px;color:var(--muted)}
@@ -170,6 +174,16 @@ section.page.on{display:grid;gap:18px}
 .chart .ann .lb rect{fill:#2a1d16;stroke:var(--orange);stroke-width:1}
 .chart .ann .lb text{fill:#ffd9c4;font-weight:600;font-size:10.5px}
 .chart .empty,.empty{color:var(--dim);font-size:13.5px;padding:26px 6px;text-align:center}
+div.empty{flex:1;min-height:150px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line2);border-radius:12px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.012) 0 10px,transparent 10px 20px);padding:20px}
+.emptyst{flex:1;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:24px 18px;border:1px dashed var(--line2);border-radius:12px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.012) 0 10px,transparent 10px 20px)}
+.emptyst .ei{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--card2);border:1px solid var(--line2);color:var(--muted)}
+.emptyst .ei svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.emptyst b{font-size:14px;color:var(--ink);font-weight:600}
+.emptyst span{font-size:13px;color:var(--dim);max-width:46ch;line-height:1.45}
+.startbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:linear-gradient(90deg,rgba(63,127,240,.14),rgba(63,127,240,.03));border:1px solid rgba(63,127,240,.35);border-radius:14px;padding:13px 16px;font-size:13.5px}
+.startbox b{color:var(--blue2)}
+.startbox .bar{flex:1;min-width:160px;height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+.startbox .bar i{display:block;height:100%;background:var(--blue2)}
 .legend{display:flex;gap:16px;font-size:13px;color:var(--muted);flex-wrap:wrap;align-items:center}
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .legend i{width:11px;height:11px;border-radius:4px;background:var(--blue)}
@@ -650,7 +664,7 @@ function niceMax(v) {
 const NS = "http://www.w3.org/2000/svg";
 function svg(w, h) { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${w} ${h}`); s.setAttribute("role", "img"); return s; }
 function add(p, tag, attrs, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; p.appendChild(e); return e; }
-function empty(el, msg) { el.innerHTML = `<div class="empty">${esc(msg || "Pas encore de données sur cette période.")}</div>`; }
+function empty(el, msg) { el.innerHTML = `<div class="emptyst"><span class="ei"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span><b>Pas encore de données</b><span>${esc(msg || "Ce graphique se remplira tout seul dès que des joueurs auront joué sur cette période.")}</span></div>`; }
 const defFmtX = (x0, x1) => (x1 - x0) <= 1.5 * DAY ? fHM : (x1 - x0) <= 8 * DAY ? (t => new Date(t).toLocaleDateString("fr-BE", { day: "2-digit", month: "2-digit" }) + " " + pad(new Date(t).getHours()) + "h") : fD;
 
 function drawAnnotations(s, X, x0, x1, T, B, H, W) {
@@ -751,7 +765,9 @@ function barChart(el, o) {
   const W = Math.max(280, el.clientWidth || 600), H = o.height || 230;
   const hasAnn = o.ann !== false && pts.length > 1 && markers().some(m => m.t >= pts[0].t && m.t <= pts[pts.length - 1].t + (o.step || DAY));
   const L = 44, R = 8, T = hasAnn ? 34 : 12, B = 26;
-  const ymax = niceMax(Math.max(...pts.map(p => Math.max(p.y || 0, p.y2 || 0))) * 1.05);
+  const rawMax = Math.max(...pts.map(p => Math.max(p.y || 0, p.y2 || 0)));
+  const ints = pts.every(p => Number.isInteger(p.y || 0) && Number.isInteger(p.y2 || 0));
+  const ymax = ints && rawMax <= 4 ? 4 : niceMax(rawMax * 1.05);
   const Y = v => T + (1 - v / ymax) * (H - T - B);
   const s = svg(W, H), fmtY = o.fmtY || fmtC;
   for (let i = 0; i <= 4; i++) { const v = ymax * i / 4; add(s, "line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: i ? "gl" : "base" }); add(s, "text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end", class: "ax" }, fmtY(v)); }
@@ -773,7 +789,7 @@ function barChart(el, o) {
 }
 
 function spark(el, vals, color) {
-  const v = vals.map(x => isNum(x) ? x : null); if (v.filter(isNum).length < 2) { el.innerHTML = ""; return; }
+  const v = vals.map(x => isNum(x) ? x : null); if (v.filter(isNum).length < 2 || !v.some(x => x)) { el.innerHTML = ""; return; }
   const W = 240, H = 38, max = Math.max(...v.filter(isNum)), min = Math.min(0, ...v.filter(isNum));
   const X = i => i / (v.length - 1) * W, Y = y => H - 3 - (y - min) / ((max - min) || 1) * (H - 8);
   let d = "", pen = false; v.forEach((y, i) => { if (!isNum(y)) { pen = false; return; } d += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(y).toFixed(1); pen = true; });
@@ -1663,9 +1679,17 @@ function renderPage() {
   let p;
   try { p = PAGES[S.page](w); } catch (e) { console.error(e); p = { html: `<div class="card"><div class="empty">Oups, cette page n'a pas pu s'afficher (${esc(e.message)}).</div></div>`, after() { } }; }
   const root = $("#pages");
-  root.innerHTML = `<section class="page on">${p.html}</section>`;
+  root.innerHTML = `<section class="page on">${startBanner()}${p.html}</section>`;
   hydrate(root);
   try { p.after(); } catch (e) { console.error(e); }
+}
+function startBanner() {
+  if (isDemo() || NO_RANGE.has(S.page)) return "";
+  const days = dayKeysBetween(todayStart() - 29 * DAY, todayStart());
+  const u = sumD("u", days), nDays = days.filter(k => dv(k, "j") > 0).length;
+  if (u >= 50 && nDays >= 3) return "";
+  const prog = Math.min(1, (Math.min(u, 50) / 50 + Math.min(nDays, 3) / 3) / 2);
+  return `<div class="startbox"><span>🌱 <b>Ton jeu vient d'être connecté.</b> Les graphiques se remplissent au fil des parties : il faut environ <b>50 joueurs</b> et <b>3 jours</b> pour que tout soit parlant (${fmt(u)} joueur${u > 1 ? "s" : ""} · ${nDays} jour${nDays > 1 ? "s" : ""} pour l'instant).</span><span class="bar"><i style="width:${(prog * 100).toFixed(0)}%"></i></span></div>`;
 }
 function renderChrome() {
   const U = D.uni || {}, g = game();
