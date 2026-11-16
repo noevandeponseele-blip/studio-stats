@@ -1,5 +1,5 @@
 --[[
-	ROBLOX LIVE ANALYTICS — script client (détection de l'appareil)
+	STUDIO STATS — script client (détection de l'appareil)
 	À placer dans : StarterPlayer > StarterPlayerScripts  (type : LocalScript)
 ]]
 
