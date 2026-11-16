@@ -80,6 +80,10 @@ nav.menu a .cnt{margin-left:auto;font-size:11px;font-weight:700;background:var(-
 .navarrows button:disabled{opacity:.3;cursor:default}
 .rangelbl{font-weight:600;font-size:14px}
 .rangelbl span{color:var(--dim);font-weight:500}
+.livetag{display:inline-flex;align-items:center;gap:0;margin-right:10px;padding:3px 10px 3px 8px;border-radius:99px;background:rgba(66,196,134,.13);color:var(--green)!important;font-size:12px;font-weight:700!important;vertical-align:1px}
+.livetag .dot{margin-right:6px;width:7px;height:7px}
+.livetag.blink{animation:lt 1s}
+@keyframes lt{0%{background:rgba(66,196,134,.45)}100%{background:rgba(66,196,134,.13)}}
 .topbar .sp{flex:1}
 .status{display:inline-flex;align-items:center;font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:12px;height:40px;padding:0 12px;white-space:nowrap}
 .iconbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;height:40px;min-width:40px;padding:0 12px;cursor:pointer;color:var(--muted);font-weight:600}
@@ -489,7 +493,7 @@ function newKey() { const a = new Uint8Array(12); try { crypto.getRandomValues(a
 /* ---------------- État ---------------- */
 const EMPTY = () => ({ live: {}, m: {}, h: {}, hj: {}, d: {}, c: {}, uni: {}, uniH: {}, f: {}, names: {}, fnames: {}, upd: {}, notes: {}, ping: null, cfg: {} });
 let D = EMPTY();
-const S = { page: "resume", range: 7, off: 0, lastOk: 0, err: null, seen: new Set(), firstFeed: true, conn: null, evSel: null, fnSel: null, cur: null, histMode: "courbe", showAllCoh: false, plSearch: "" };
+const S = { tickN: 0, page: "resume", range: 7, off: 0, lastOk: 0, err: null, seen: new Set(), firstFeed: true, conn: null, evSel: null, fnSel: null, cur: null, histMode: "courbe", showAllCoh: false, plSearch: "" };
 
 /* ---------------- Accès Firebase ---------------- */
 function applyQuery(obj, p) {
@@ -543,51 +547,91 @@ async function loadFull() {
   const k = ["h", "hj", "d", "c", "uni", "uniH", "names", "fnames", "upd", "notes", "ping", "cfg"];
   k.forEach((n, i) => D[n] = r[i] || (n === "ping" ? null : {}));
 }
+// Données « chaudes » : la journée en cours, les dernières heures (rechargées toutes les 8 s)
+async function loadHot() {
+  const now = Date.now(), tk = kD(now), yk = kD(now - DAY);
+  const [d0, d1, hj, h, c0, c1, uni] = await Promise.all([fb("d/" + tk), fb("d/" + yk), fb("hj", since(3 * HOUR, kH)), fb("h", since(3 * HOUR, kH)), fb("c/" + tk), fb("c/" + yk), fb("uni/now")]);
+  if (d0) D.d[tk] = d0; if (d1) D.d[yk] = d1;
+  if (hj) Object.assign(D.hj, hj); if (h) Object.assign(D.h, h);
+  if (c0) D.c[tk] = c0; if (c1) D.c[yk] = c1;
+  if (uni) D.uni = uni;
+}
 let busy = false;
 async function refresh(level) {
   if (busy) return; busy = true;
   try {
     if (level >= 3) await loadFull();
-    if (level >= 2) await loadMinutes();
+    else if (level >= 2) await loadHot();
+    if (level >= 2 && (level >= 3 || S.tickN % 6 === 0)) await loadMinutes();
     await loadFast();
     S.lastOk = Date.now(); S.err = null;
   } catch (e) { S.err = e; console.warn("[Studio Stats]", e); }
   busy = false;
   renderChrome();
   if (S.page === "maintenant" && $("#nowCcu")) renderNow(level >= 2);
-  else if (level >= 3) renderPage();
+  else if (level >= 2) liveRender(level >= 3);
 }
+// Recalcule la page en direct, sans gêner : pas pendant qu'on tape, qu'on choisit ou qu'on survole un graphique
+let lastHover = 0, pendingRender = false;
+document.addEventListener("pointermove", e => { if (e.target.closest && e.target.closest(".chart,.coh,.heat,[data-tip],select")) lastHover = Date.now(); }, { passive: true });
+function liveRender(force) {
+  const a = document.activeElement;
+  const typing = a && a.closest && a.closest("#pages") && /INPUT|SELECT|TEXTAREA/.test(a.tagName);
+  if (S.page === "connecter" && !force) return;
+  if (typing || (!force && Date.now() - lastHover < 2500)) { pendingRender = true; return; }
+  pendingRender = false;
+  const y = window.scrollY; hideTip(); renderPage(); window.scrollTo(0, y);
+  flashLive();
+}
+function flashLive() { const el = $("#liveTag"); if (!el) return; el.classList.remove("blink"); void el.offsetWidth; el.classList.add("blink"); }
 
 /* ---------------- Fenêtre de temps ---------------- */
 function todayStart() { return dayStart(Date.now()); }
 function dayKeysBetween(t0, t1) { const a = []; for (let t = dayStart(t0); t <= t1; t += DAY) a.push(kD(t)); return a; }
 function W() {
-  const n = S.range, off = S.off, now = Date.now();
+  // off = 0 : fenêtre glissante qui finit MAINTENANT (journée en cours incluse, en direct)
+  // off > 0 : périodes passées, en journées complètes
+  const n = S.range, off = S.off, now = Date.now(), t0 = todayStart();
+  const frac = clamp((now - t0) / DAY, .02, 1); // part de la journée UTC déjà écoulée
   if (n === 1) {
-    const end = hourStart(now) - off * 24 * HOUR; // heure en cours incluse
+    const end = hourStart(now) - off * 24 * HOUR;
     const start = end - 23 * HOUR;
     const hours = [], prevHours = [];
     for (let t = start; t <= end; t += HOUR) { hours.push(t); prevHours.push(t - 24 * HOUR); }
-    const day = todayStart() - off * DAY;
-    return { n: 1, hourly: true, start, end: end + HOUR, hours, prevHours, days: [kD(day)], prevDays: [kD(day - DAY)], partialDay: off === 0,
-      label: off === 0 ? `24 heures, jusqu'à maintenant` : `24 heures, jusqu'au ${fDHL(end + HOUR)}`, cmp: "comparé aux 24 h d'avant", dayLabel: off === 0 ? "aujourd'hui" : fDay(day) };
+    const day = t0 - off * DAY;
+    const days = [kD(day)], prevDays = [kD(day - DAY)];
+    if (off === 0) prevDays.frac = frac;
+    return { n: 1, hourly: true, live: off === 0, start, end: off === 0 ? now : end + HOUR, hours, prevHours, days, prevDays, fullDays: off === 0 ? [] : days, partialDay: false,
+      label: off === 0 ? `24 heures, jusqu'à ${fHM(now)}` : `24 heures, jusqu'au ${fDHL(end + HOUR)}`, cmp: off === 0 ? "comparé aux 24 h d'avant" : "comparé aux 24 h d'avant", dayLabel: off === 0 ? "aujourd'hui" : fDay(day) };
   }
-  const endDay = todayStart() - DAY - off * n * DAY; // dernier jour terminé
+  if (off === 0) {
+    const days = [], prevDays = [], hours = [], prevHours = [];
+    // fenêtre glissante de n × 24 h : la 1re journée ne compte que pour sa partie encore dans la fenêtre
+    for (let t = t0 - n * DAY; t <= t0; t += DAY) { days.push(kD(t)); prevDays.push(kD(t - n * DAY)); }
+    days.first = 1 - frac; prevDays.first = 1 - frac; prevDays.frac = frac;
+    const hEnd = hourStart(now);
+    for (let t = hEnd - (n * 24 - 1) * HOUR; t <= hEnd; t += HOUR) { hours.push(t); prevHours.push(t - n * DAY); }
+    return { n, hourly: n <= 7, live: true, start: hEnd - (n * 24 - 1) * HOUR, end: now, hours, prevHours, days, prevDays, fullDays: days.slice(1, -1), partialDay: false,
+      label: `${n} derniers jours, jusqu'à ${fHM(now)}`, cmp: `comparé aux ${n} jours d'avant, à heure égale`, dayLabel: `${n} jours` };
+  }
+  const endDay = t0 - off * n * DAY; // dernier jour (terminé) de la période passée
   const startDay = endDay - (n - 1) * DAY;
   const days = [], prevDays = [], hours = [], prevHours = [];
   for (let t = startDay; t <= endDay; t += DAY) { days.push(kD(t)); prevDays.push(kD(t - n * DAY)); }
   for (let t = startDay; t < endDay + DAY; t += HOUR) { hours.push(t); prevHours.push(t - n * DAY); }
-  return { n, hourly: n <= 7, start: startDay, end: endDay + DAY, hours, prevHours, days, prevDays, partialDay: false,
+  return { n, hourly: n <= 7, live: false, start: startDay, end: endDay + DAY, hours, prevHours, days, prevDays, fullDays: days, partialDay: false,
     label: `${n} jours, du ${fD(startDay)} au ${fD(endDay)}`, cmp: `comparé du ${fD(startDay - n * DAY)} au ${fD(endDay - n * DAY)}`, dayLabel: `${n} jours` };
 }
 
 /* ---------------- Calculs ---------------- */
 const dv = (k, f) => { const r = D.d[k]; return r && isNum(r[f]) ? r[f] : 0; };
-const sumD = (f, days) => sum(days.map(k => dv(k, f)));
+// days.frac : la dernière journée ne compte que pour la part déjà écoulée (comparaison à heure égale)
+const wOf = (days, i) => (days.frac != null && i === days.length - 1 ? days.frac : 1) * (days.first != null && i === 0 ? days.first : 1);
+const sumD = (f, days) => { let t = 0; days.forEach((k, i) => { t += dv(k, f) * wOf(days, i); }); return t; };
 const hasDays = days => days.some(k => D.d[k] && (D.d[k].j || D.d[k].u));
-function mergeMap(f, days) { const o = {}; for (const k of days) { const m = (D.d[k] || {})[f]; if (m) for (const [a, b] of Object.entries(m)) o[a] = (o[a] || 0) + (b || 0); } return o; }
-function mergeNested(f, days) { const o = {}; for (const k of days) { const m = (D.d[k] || {})[f]; if (m) for (const [a, b] of Object.entries(m)) { const t = o[a] || (o[a] = {}); for (const [x, y] of Object.entries(b || {})) { if (y && typeof y === "object") { const tt = t[x] || (t[x] = {}); for (const [p, q] of Object.entries(y)) tt[p] = (tt[p] || 0) + (q || 0); } else t[x] = (t[x] || 0) + (y || 0); } } } return o; }
-function histo(f, days) { const h = new Array(61).fill(0); for (const k of days) { const m = (D.d[k] || {})[f]; if (m) for (const [a, b] of Object.entries(m)) { const i = +a.replace(/\D/g, ""); if (i >= 0 && i <= 60) h[i] += b || 0; } } return h; }
+function mergeMap(f, days) { const o = {}; days.forEach((k, i) => { const w = wOf(days, i), m = (D.d[k] || {})[f]; if (m) for (const [a, b] of Object.entries(m)) o[a] = (o[a] || 0) + (b || 0) * w; }); return o; }
+function mergeNested(f, days) { const o = {}; days.forEach((k, i) => { const w = wOf(days, i), m = (D.d[k] || {})[f]; if (m) for (const [a, b] of Object.entries(m)) { const t = o[a] || (o[a] = {}); for (const [x, y] of Object.entries(b || {})) { if (y && typeof y === "object") { const tt = t[x] || (t[x] = {}); for (const [p, q] of Object.entries(y)) tt[p] = (tt[p] || 0) + (q || 0) * w; } else t[x] = (t[x] || 0) + (y || 0) * w; } } }); return o; }
+function histo(f, days) { const h = new Array(61).fill(0); days.forEach((k, di) => { const sc = wOf(days, di); const m = (D.d[k] || {})[f]; if (m) for (const [a, b] of Object.entries(m)) { const i = +a.replace(/\D/g, ""); if (i >= 0 && i <= 60) h[i] += (b || 0) * sc; } }); return h; }
 function histStats(h) {
   const n = sum(h); if (!n) return { n: 0 };
   let acc = 0, med = null, p90 = null;
@@ -774,6 +818,8 @@ function barChart(el, o) {
   const slot = (W - L - R) / pts.length, gap = Math.min(4, slot * .22), two = pts.some(p => p.y2 != null), bw = Math.max(1, (slot - gap) / (two ? 2 : 1));
   const every = Math.ceil(pts.length / Math.max(2, Math.floor((W - L - R) / 64)));
   const bar = (x, v, color) => { const y = Y(v || 0), h = Y(0) - y, r = Math.min(4, bw / 2, h); if (h > 0) add(s, "path", { d: `M${x} ${Y(0)}V${y + r}Q${x} ${y} ${x + r} ${y}H${x + bw - r}Q${x + bw} ${y} ${x + bw} ${y + r}V${Y(0)}Z`, fill: color }); };
+  const today0 = todayStart();
+  pts.forEach(p => { if (p.cur == null && !o.noCur && (o.step || DAY) === DAY && p.t === today0) p.cur = true; });
   pts.forEach((p, i) => {
     const x = L + i * slot + gap / 2;
     const hl = add(s, "rect", { x: L + i * slot, y: T, width: slot, height: H - T - B, class: "hl" });
@@ -837,7 +883,7 @@ function hydrate(root) { $$("[data-spark]", root).forEach(el => spark(el, JSON.p
    ============================================================ */
 const head = (title, desc, extra = "") => `<div class="phead"><div><h1>${title}</h1><p>${desc}</p></div>${extra}</div>`;
 const card = (title, meta, body, cls = "", info = "") => `<div class="card ${cls}"><div class="ch"><h2>${title}${info ? `<i class="i" data-tip="${esc(info)}">i</i>` : ""}</h2>${meta ? `<span class="meta">${meta}</span>` : ""}</div>${body}</div>`;
-const partialBadge = w => w.partialDay ? `<span class="badge"><i></i>Journée en cours · chiffres partiels</span>` : "";
+const partialBadge = w => w.live ? `<span class="badge" data-tip="Les chiffres incluent la journée en cours et se mettent à jour tout seuls. Les comparaisons (▲▼) sont faites à heure égale avec la période d'avant."><i style="background:var(--green)"></i>Inclut aujourd'hui · recalculé en direct</span>` : "";
 
 // Séries horaires ou journalières selon la fenêtre
 function seriesHJ(w, f) { return w.hourly ? w.hours.map(t => ({ t, y: hjv(t, f) })) : w.days.map(k => ({ t: pk(k), y: dv(k, f) })); }
@@ -1108,15 +1154,17 @@ const grade = (v, a, b) => v == null ? "pas encore assez de recul" : v >= a ? '<
 /* ---------------- La boucle ---------------- */
 function pageBoucle(w) {
   const days = w.n === 1 ? dayKeysBetween(todayStart() - 6 * DAY, todayStart()) : w.days, prev = w.n === 1 ? days.map(k => kD(pk(k) - 7 * DAY)) : w.prevDays;
-  const last = days[days.length - 1], lastP = prev[prev.length - 1];
-  const dau = sumD("u", days) / days.length, dau0 = sumD("u", prev) / prev.length;
+  const last = days[days.length - 1], lastP = kD(pk(last) - (w.n === 1 ? 7 : w.n) * DAY);
+  const td = kD(Date.now()), full = days.filter(k => k !== td), fullP = full.map(k => kD(pk(k) - (w.n === 1 ? 7 : w.n) * DAY));
+  const dau = full.length ? sumD("u", full) / full.length : dv(td, "u"), dau0 = fullP.length ? sumD("u", fullP) / fullP.length : null;
   const wau = dv(last, "wau"), wau0 = dv(lastP, "wau"), mau = dv(last, "mau"), mau0 = dv(lastP, "mau");
   const d30 = dayKeysBetween(pk(last) - 29 * DAY, pk(last)), d30p = dayKeysBetween(pk(lastP) - 29 * DAY, pk(lastP));
-  const stick = mau ? (sumD("u", d30) / 30) / mau : null, stick0 = mau0 ? (sumD("u", d30p) / 30) / mau0 : null;
+  const avgU = ks => { const f = ks.filter(k => k !== td); return f.length ? sumD("u", f) / f.length : null; };
+  const stick = mau ? avgU(d30) / mau : null, stick0 = mau0 ? avgU(d30p) / mau0 : null;
   const pt = sumD("pt", days), pt0 = sumD("pt", prev);
   const html = head("La boucle", "Combien de temps ils jouent, à quelle heure, sur quoi — et est-ce qu'ils reviennent souvent.", w.n === 1 ? `<span class="badge"><i></i>En mode 24 h, cette page montre les 7 derniers jours</span>` : "") + `
   <div class="grid k5">
-    ${kpi({ icon: "users", lab: "DAU", info: "Joueurs uniques par jour (moyenne).", val: fmt(dau), delta: delta(dau, dau0), spark: days.map(k => dv(k, "u")), sub: `moyenne · ${days.length} j` })}
+    ${kpi({ icon: "users", lab: "DAU", info: "Joueurs uniques par jour (moyenne).", val: fmt(dau), delta: delta(dau, dau0), spark: days.map(k => dv(k, "u")), sub: `moyenne des journées terminées · aujourd'hui : ${fmt(dv(td, "u"))}` })}
     ${kpi({ icon: "cal", lab: "WAU", info: "Joueurs uniques sur les 7 derniers jours (au dernier jour de la période).", val: fmt(wau), delta: delta(wau, wau0), spark: days.map(k => dv(k, "wau")), sub: "7 jours glissants" })}
     ${kpi({ icon: "cal", lab: "MAU", info: "Joueurs uniques sur les 30 derniers jours.", val: fmt(mau), delta: delta(mau, mau0), spark: days.map(k => dv(k, "mau")), sub: "30 jours glissants" })}
     ${kpi({ icon: "rep", lab: "Fidélité (DAU/MAU)", info: "Sur tous les joueurs du mois, quelle part joue un jour donné. 20 % = un joueur vient en moyenne 6 jours par mois.", val: pct(stick, 0), delta: deltaPt(stick, stick0), spark: days.map(k => { const m = dv(k, "mau"); return m ? dv(k, "u") / m : null; }), sub: stick ? `≈ ${fmt1(stick * 30)} jours de jeu par mois` : "" })}
@@ -1702,6 +1750,7 @@ function renderChrome() {
   $("#liveN").textContent = fmt(ccu);
   $("#liveLbl").textContent = ccu > 1 ? "joueurs en jeu" : "joueur en jeu";
   $("#liveAgo").textContent = S.lastOk ? (Date.now() - S.lastOk < 20e3 ? "à l'instant" : ago(S.lastOk)) : "";
+  if (!isDemo() && srv.length) $("#stTxt").textContent = "";
   const tk = kD(Date.now()), u = dv(tk, "u"), nu = dv(tk, "nu"), rb = dv(tk, "rb");
   const mt = minuteTotals(); const lm = new Date(); lm.setHours(0, 0, 0, 0); let pkT = ccu; for (const [t, v] of mt) if (t >= lm.getTime()) pkT = Math.max(pkT, v);
   const goal = Math.max(10, niceMax(Math.max(u, dv(kD(Date.now() - DAY), "u")) * 1.2));
@@ -1721,7 +1770,8 @@ function renderChrome() {
   const w = W();
   $("#rangeSel").value = String(S.range);
   $("#nextBtn").disabled = S.off === 0;
-  $("#rangeLbl").innerHTML = NO_RANGE.has(S.page) ? `<span>${S.page === "maintenant" ? "En direct · mis à jour toutes les 5 s" : ""}</span>` : `${esc(w.label)} <span>· ${esc(w.cmp)}</span>`;
+  const liveTag = `<span class="livetag" id="liveTag"><i class="dot on"></i>En direct</span>`;
+  $("#rangeLbl").innerHTML = NO_RANGE.has(S.page) ? (S.page === "maintenant" ? liveTag + `<span>mis à jour toutes les 4 s</span>` : "") : `${w.live ? liveTag : ""}${esc(w.label)} <span>· ${esc(w.cmp)}</span>`;
   $(".pillsel").style.visibility = $(".navarrows").style.visibility = NO_RANGE.has(S.page) ? "hidden" : "visible";
 }
 function route() {
@@ -1756,13 +1806,15 @@ let rz, lastW = innerWidth; window.addEventListener("resize", () => { if (Math.a
 /* ---------------- Démarrage ---------------- */
 route();
 refresh(3);
-let tickN = 0;
+// Rythme : direct toutes les 4 s · journée en cours + dernières heures toutes les 8 s · tout l'historique toutes les 2 min
 setInterval(() => {
-  tickN++;
+  S.tickN++;
   if (isDemo()) DEMO.tick();
   if (document.hidden) return;
-  refresh(tickN % 15 === 0 ? 3 : tickN % 6 === 0 ? 2 : 1);
+  refresh(S.tickN % 30 === 0 ? 3 : S.tickN % 2 === 0 ? 2 : 1);
+  if (pendingRender && S.tickN % 2 === 1) liveRender(false);
 }, 4000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(3); });
 
 </script>
 </body>
