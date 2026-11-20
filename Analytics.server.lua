@@ -347,6 +347,7 @@ local function getInfo(id, infoType)
 	return nil
 end
 
+local queueSaleNotification -- défini plus bas (notifications)
 local function recordPurchase(player, kind, id, infoType)
 	local info = getInfo(id, infoType)
 	local price = (info and info.PriceInRobux) or 0
@@ -364,7 +365,62 @@ local function recordPurchase(player, kind, id, infoType)
 		inc("d/" .. today .. "/py")
 	end
 	feed("buy", player, { item = name, r = price, kind = kind })
+	queueSaleNotification(name, price)
 end
+
+------------------------------------------------------------------------
+-- Notifications de ventes sur ton téléphone (app ntfy) — réglées depuis le site
+------------------------------------------------------------------------
+local notifyCfg = { on = false }
+local notifyQueue = {}
+
+local function loadNotify()
+	local ok, raw = request("GET", "cfg/notify", nil)
+	if ok and raw and raw ~= "null" then
+		local okD, data = pcall(function() return HttpService:JSONDecode(raw) end)
+		if okD and type(data) == "table" then notifyCfg = data end
+	elseif ok then
+		notifyCfg = { on = false }
+	end
+end
+
+local function money(n, cur)
+	local s = string.format("%.2f", n)
+	s = string.gsub(s, "%.", ",")
+	return cur == "USD" and ("$" .. s) or (s .. " €")
+end
+
+queueSaleNotification = function(itemName, price)
+	local c = notifyCfg
+	if not c or not c.on or type(c.topic) ~= "string" or not string.match(c.topic, "^[%w_%-]+$") then return end
+	if #c.topic < 16 or (tonumber(c.min) or 0) > price then return end
+	local earned = price * 0.7                                   -- Roblox garde 30 %
+	local usd = earned * (tonumber(c.rate) or 0.0038)            -- taux DevEx (USD par Robux gagné)
+	local cur = c.cur == "USD" and "USD" or "EUR"
+	local amount = cur == "USD" and usd or usd * (tonumber(c.fx) or 0.89)
+	table.insert(notifyQueue, {
+		topic = c.topic,
+		title = "+" .. money(amount, cur) .. " gagnés",
+		message = itemName .. " · " .. tostring(price) .. " R$ (≈ " .. tostring(math.floor(earned)) .. " R$ pour toi)",
+		tags = { "moneybag" },
+		priority = 4,
+		click = type(c.click) == "string" and string.match(c.click, "^https://") and c.click or nil,
+	})
+end
+
+task.spawn(function()
+	while true do
+		local n = table.remove(notifyQueue, 1)
+		if n then
+			pcall(function()
+				HttpService:RequestAsync({ Url = "https://ntfy.sh/", Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = HttpService:JSONEncode(n) })
+			end)
+			task.wait(3) -- pas plus d'une notification toutes les 3 secondes
+		else
+			task.wait(1)
+		end
+	end
+end)
 
 MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 	if purchased then recordPurchase(player, "pass", passId, Enum.InfoType.GamePass) end
@@ -608,6 +664,13 @@ task.spawn(function()
 	while true do
 		task.wait(CONFIG.UNIVERSE_SECONDS)
 		fetchUniverse()
+	end
+end)
+
+task.spawn(function()
+	while true do
+		loadNotify() -- relit les réglages de notifications toutes les minutes
+		task.wait(60)
 	end
 end)
 
