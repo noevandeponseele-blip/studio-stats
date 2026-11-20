@@ -82,6 +82,7 @@ local function signIn()
 		tokenExpires = os.time() + (tonumber(data.expiresIn) or 3600) - 300
 		return true
 	end
+	warn("[Studio Stats] ❌ Email ou mot de passe refusé par Firebase. Vérifie PASSWORD et EMAIL en haut du script (et que le compte existe dans Authentication → Users).")
 	return false
 end
 
