@@ -32,7 +32,7 @@
 ]]
 
 local CONFIG = {
-	FIREBASE_URL = "https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app/mon-jeu",
+	FIREBASE_URL = "https://TON-PROJET-default-rtdb.europe-west1.firebasedatabase.app",
 	API_KEY = "COLLE_TA_CLE_API_WEB",     -- Paramètres du projet > Général > Clé API Web
 	EMAIL = "COLLE_L_EMAIL_DU_COMPTE",      -- le compte créé dans Authentication
 	PASSWORD = "COLLE_LE_MOT_DE_PASSE",     -- reste sur le serveur, jamais envoyé aux joueurs
@@ -51,7 +51,10 @@ local LocalizationService = game:GetService("LocalizationService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
-local BASE = string.gsub(CONFIG.FIREBASE_URL, "/+$", "")
+-- Même script pour tous tes jeux : chaque jeu range ses données dans games/<identifiant du jeu>
+local ROOT = string.gsub(CONFIG.FIREBASE_URL, "/+$", "")
+local GAME_KEY = game.GameId ~= 0 and tostring(game.GameId) or "studio"
+local BASE = ROOT .. "/games/" .. GAME_KEY
 local USE_AUTH = CONFIG.EMAIL ~= "" and not string.find(CONFIG.EMAIL, "^COLLE_")
 
 ------------------------------------------------------------------------
@@ -100,6 +103,7 @@ local function authParam()
 	end
 	return idToken and ("auth=" .. idToken) or nil
 end
+local GAME_NAME = "Mon jeu"
 local NULL = "__NULL__" -- remplacé par null dans le JSON (= suppression)
 local IS_STUDIO = RunService:IsStudio()
 local JOB = game.JobId ~= "" and game.JobId or ("studio-" .. HttpService:GenerateGUID(false))
@@ -134,8 +138,10 @@ local function withAuth(url, extra)
 	return url .. "?" .. table.concat(q, "&")
 end
 
+-- path commençant par "/" = depuis la racine de la base (réglages communs à tous tes jeux)
 local function request(method, path, body, extra, retried)
-	local url = withAuth(BASE .. "/" .. path .. ".json", extra)
+	local full = string.sub(path, 1, 1) == "/" and (ROOT .. path) or (BASE .. "/" .. path)
+	local url = withAuth(full .. ".json", extra)
 	local ok, res = pcall(function()
 		return HttpService:RequestAsync({
 			Url = url,
@@ -164,9 +170,9 @@ end
 ------------------------------------------------------------------------
 if IS_STUDIO and not CONFIG.STUDIO_SENDS_STATS then
 	task.spawn(function()
-		local ok = request("PUT", "ping", {
-			t = { [".sv"] = "timestamp" }, from = "studio", place = game.PlaceId, universe = game.GameId,
-		})
+		local body = { t = { [".sv"] = "timestamp" }, from = "studio", place = game.PlaceId, universe = game.GameId }
+		local ok = request("PUT", "ping", body)
+		if ok then request("PUT", "/ping", body) end
 		if ok then
 			print("[Studio Stats] ✅ Connexion à Firebase OK ! Regarde l'onglet « Connecter mon jeu » du site.")
 		else
@@ -375,7 +381,7 @@ local notifyCfg = { on = false }
 local notifyQueue = {}
 
 local function loadNotify()
-	local ok, raw = request("GET", "cfg/notify", nil)
+	local ok, raw = request("GET", "/settings/notify", nil) -- réglage commun à tous tes jeux
 	if ok and raw and raw ~= "null" then
 		local okD, data = pcall(function() return HttpService:JSONDecode(raw) end)
 		if okD and type(data) == "table" then notifyCfg = data end
@@ -401,7 +407,7 @@ queueSaleNotification = function(itemName, price)
 	table.insert(notifyQueue, {
 		topic = c.topic,
 		title = "+" .. money(amount, cur) .. " gagnés",
-		message = itemName .. " · " .. tostring(price) .. " R$ (≈ " .. tostring(math.floor(earned)) .. " R$ pour toi)",
+		message = GAME_NAME .. " · " .. itemName .. " · " .. tostring(price) .. " R$ (≈ " .. tostring(math.floor(earned)) .. " R$ pour toi)",
 		tags = { "moneybag" },
 		priority = 4,
 		click = type(c.click) == "string" and string.match(c.click, "^https://") and c.click or nil,
@@ -649,6 +655,13 @@ end
 -- Boucles
 ------------------------------------------------------------------------
 inc("d/" .. dayKey() .. "/srv")
+
+-- Fiche du jeu (nom, identifiants) : le site s'en sert pour lister tous tes jeux
+task.spawn(function()
+	local okI, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+	if okI and info and info.Name then GAME_NAME = info.Name end
+	pendingSet["meta"] = { name = GAME_NAME, place = game.PlaceId, universe = game.GameId, t = { [".sv"] = "timestamp" } }
+end)
 
 task.spawn(function()
 	task.wait(3)
